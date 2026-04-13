@@ -1,0 +1,253 @@
+{
+  "Metadata": {
+    "title": "绘漫方舟 - AI 漫画生成工作台",
+    "description": "输入故事灵感，生成分镜脚本、角色设定图和漫画页，适合小说改编、短篇漫画策划与视觉创作。"
+  },
+  "SeoMap": {
+    "initial": {
+      "title": "绘漫方舟 - AI 漫画生成工作台",
+      "description": "输入故事灵感，生成分镜脚本、角色设定图和漫画页，适合小说改编、短篇漫画策划与视觉创作。"
+    },
+    "generating_story": {
+      "title": "正在生成故事大纲 - 绘漫方舟",
+      "description": "绘漫方舟正在根据你的故事描述生成多段漫画分镜大纲。"
+    },
+    "story_done": {
+      "title": "故事大纲已生成 - 绘漫方舟",
+      "description": "当前已生成 {segmentCount} 个漫画段落，可继续生成角色设定图或直接生成漫画页。"
+    },
+    "generating_characters": {
+      "title": "正在生成角色设定图 - 绘漫方舟",
+      "description": "绘漫方舟正在提取角色信息并生成角色设定图，用于保持后续漫画人物一致性。"
+    },
+    "characters_done": {
+      "title": "角色设定已完成 - 绘漫方舟",
+      "description": "角色设定已完成，可基于 {segmentCount} 个分镜段落继续生成漫画页。"
+    },
+    "generating_comics": {
+      "title": "正在生成漫画页 - 绘漫方舟",
+      "description": "绘漫方舟正在根据故事分镜{storySummary}生成漫画页面。"
+    },
+    "done": {
+      "title": "漫画生成完成 - 绘漫方舟",
+      "description": "漫画已全部生成完成{segmentCountText}，可继续预览、下载或导出整套漫画。"
+    }
+  },
+  "Page": {
+    "sr_title": "绘漫方舟 AI 漫画生成工作台",
+    "sr_description": "这是一个用于生成漫画故事大纲、角色设定图和分镜漫画页的 AI 创作工作台，支持参考图、角色一致性控制和整套漫画导出。",
+    "stage1": "阶段 1/3: 正在生成故事段落大纲...",
+    "generating_characters": "正在生成角色设定图..."
+  },
+  "Header": {
+    "appName": "绘漫方舟",
+    "settings": "API 设置",
+    "close": "关闭",
+    "apiKey": "API Key",
+    "apiKeyHint": "密钥和配置信息将仅保存在您的本地浏览器缓存中，不会上传到任何服务器。",
+    "buyApiKeyButton": "去购买",
+    "buyApiKeyHelper": "没有 Key？",
+    "buyApiKeyLinkText": "去购买",
+    "cancel": "取消",
+    "save": "保存配置",
+    "language": "语言",
+    "zh": "中文",
+    "en": "English",
+    "ja": "日本語"
+  },
+  "EmptyCanvas": {
+    "brand": "绘漫方舟",
+    "welcomePrefix": "欢迎来到",
+    "welcomeSuffix": "，开始创作你的多格漫画",
+    "description": "描述你的动漫故事，或上传参考图片，AI 将为你生成专属画卷"
+  },
+  "Sidebar": {
+    "storyDescription": "漫画故事描述：",
+    "storyPlaceholder": "例如：在一个被遗忘的赛博朋克城市中，一名拥有读取记忆能力的侦探卷入了一场神秘的阴谋。风格偏向暗黑系，角色冷酷果断...",
+    "generateStory": "生成故事大纲",
+    "generatingStory": "正在生成故事大纲...",
+    "advancedOptions": "高级选项（模型、风格、段落数等）",
+    "modelLabel": "模型选择：",
+    "outputLanguageLabel": "输出语言：",
+    "paragraphCountLabel": "段落数量：",
+    "customParagraphPlaceholder": "请输入 {min}-{max}",
+    "paragraphHint": "参考旧版工作流，支持自动、固定段数和自定义段数。",
+    "panelsPerParagraphLabel": "每段格子数：",
+    "panelsPerParagraphPlaceholder": "例如：3~6",
+    "panelsPerParagraphHint": "控制每段漫画包含的格子数（最小1）",
+    "ratioLabel": "漫画比例",
+    "ratioLandscape": "横屏 16:9",
+    "ratioPortrait": "竖屏 9:16",
+    "ratioHint": "选择生成漫画页面的横屏或竖屏画幅",
+    "animeStyleLabel": "动漫风格：",
+    "customAnimeStylePlaceholder": "请输入自定义动漫风格",
+    "stylePreferenceLabel": "风格偏好（可选）：",
+    "stylePreferencePlaceholder": "例如：可爱、梦幻、炫酷、温馨...",
+    "referenceImagesLabel": "参考图片（可选，最多{count}张）：",
+    "uploadReference": "点击上传参考图",
+    "uploadReferenceHint": "支持 PNG、JPG/JPEG、WEBP、HEIC、HEIF | 最多{count}张图片",
+    "referenceImageAlt": "参考图 {index}",
+    "uploadedCount": "已上传 {current}/{total} 张，后续会同时影响角色设定图和漫画页画风。",
+    "clearHistory": "清除历史记录",
+    "defaultSegmentTitle": "段落 {index}",
+    "languages": {
+      "zh": "中文（简体）",
+      "en": "English",
+      "ja": "日本語"
+    },
+    "paragraphOptions": {
+      "auto": "自动（推荐，8-15段）",
+      "five": "5段",
+      "eight": "8段",
+      "ten": "10段",
+      "twelve": "12段",
+      "fifteen": "15段",
+      "custom": "自定义段数"
+    },
+    "animeStyles": {
+      "kawaii": "日系萌系",
+      "shonen": "少年热血",
+      "shoujo": "少女浪漫",
+      "ghibli": "吉卜力治愈",
+      "fantasy": "奇幻冒险",
+      "isekai": "异世界冒险",
+      "slice-of-life": "日常治愈",
+      "sports": "运动热血",
+      "cyberpunk": "赛博朋克",
+      "mecha": "机甲科幻",
+      "dark-fantasy": "黑暗奇幻",
+      "seinen": "青年漫画",
+      "manga-monochrome": "黑白漫画",
+      "webtoon": "韩漫条漫",
+      "idol-pop": "偶像闪耀",
+      "yokai": "和风怪谈",
+      "guofeng": "国风古韵",
+      "custom": "自定义风格"
+    },
+    "animeStylePreviewChips": {
+      "moe": "萌系",
+      "action": "热血",
+      "love": "恋爱",
+      "film": "电影感",
+      "magic": "魔法",
+      "quest": "冒险",
+      "daily": "日常",
+      "rush": "竞技",
+      "neon": "霓虹",
+      "mecha": "机甲",
+      "dark": "暗黑",
+      "drama": "剧情",
+      "ink": "墨感",
+      "scroll": "条漫",
+      "idol": "偶像",
+      "yokai": "怪谈",
+      "custom": "自定义"
+    },
+    "alerts": {
+      "maxReferenceImages": "参考图片最多上传 {count} 张",
+      "onlyImageFiles": "仅支持上传 PNG、JPG/JPEG、WEBP、HEIC、HEIF 格式图片",
+      "readFileFailed": "读取文件失败：{name}",
+      "uploadFailed": "上传图片失败",
+      "missingApiKey": "请先填写 API Key",
+      "missingStoryInput": "请填写漫画故事描述",
+      "missingCustomStyle": "你已选择“自定义风格”，请先填写具体的动漫风格描述",
+      "invalidParagraphRange": "自定义段落数需在 {min}-{max} 之间",
+      "invalidPanelsPerParagraph": "每段格子数不能小于 1",
+      "invalidResult": "生成结果不符合分镜格式，请重试一次",
+      "generateFailed": "生成失败"
+    }
+  },
+  "StoryBoard": {
+    "title": "故事脚本已生成！",
+    "subtitle": "共 {count} 个段落，请检查内容后选择下一步操作",
+    "generateCharacters": "生成角色设定图",
+    "generatingCharacters": "正在生成角色设定图...",
+    "skipToComics": "跳过，直接生成漫画",
+    "helper": "建议先生成角色设定图，确保各段落漫画中角色造型一致",
+    "generateCurrentPage": "直接生成本页",
+    "defaultSegmentTitle": "段落 {index}",
+    "alerts": {
+      "missingApiKey": "请先填写 API Key",
+      "generateCharactersFailed": "生成角色失败"
+    }
+  },
+  "CharacterBoard": {
+    "defaultSegmentTitle": "段落 {index}",
+    "progressGenerating": "正在生成漫画 {completed}/{total}",
+    "progressDone": "已完成 {completed}/{total} 页漫画",
+    "withCharacterReference": "角色设定图已接入，后续漫画会优先参考角色标准造型。",
+    "withoutCharacterReference": "当前未使用角色设定图，将直接依据脚本和风格参考生图。",
+    "exportAll": "导出整套漫画",
+    "generateAll": "生成全部漫画",
+    "generatingAll": "正在批量生成...",
+    "currentStage": "当前创作阶段",
+    "stageCharacterCompleted": "角色设定图已完成",
+    "stageCharacterSkipped": "可选：角色设定图已跳过",
+    "stageComicGeneration": "分段漫画生成",
+    "stageCompleteAll": "完成全部漫画页",
+    "referenceTitle": "角色设定参考",
+    "referenceHintWithImage": "这张图片会作为漫画页生成的第一优先参考。",
+    "referenceHintWithoutImage": "如果你跳过了角色设定图，漫画会直接依据脚本和参考风格生成。",
+    "characterDesignAlt": "角色设定图",
+    "noCharacterDesignImage": "暂无角色设定图",
+    "noCharacterDesignImageHint": "你可以回到上一步生成角色设定图，提升多页角色一致性。",
+    "generateCharacterDesign": "生成角色设定图",
+    "regenerateCharacterDesign": "重新生成角色设定图",
+    "generatingCharacterDesign": "正在生成角色设定图...",
+    "downloadCharacterDesign": "下载角色设定图",
+    "characterNotes": "角色设定说明",
+    "characterCard": "角色卡 {index}",
+    "appearance": "外貌",
+    "outfit": "服装",
+    "personality": "性格",
+    "role": "定位",
+    "staging": "镜头站位",
+    "noDescription": "暂无描述",
+    "noCharacterText": "当前未生成角色设定文本。若你直接跳过角色设定图，漫画页会仅依据脚本内容生成。",
+    "comicAlt": "{title} 漫画",
+    "generationFailed": "漫画生成失败",
+    "notGeneratedYet": "尚未生成漫画页",
+    "notGeneratedHint": "点击下方按钮即可生成当前段落。",
+    "download": "下载",
+    "generating": "生成中...",
+    "regenerate": "重新生成",
+    "generateComic": "生成漫画",
+    "previewAlt": "预览大图",
+    "alerts": {
+      "missingApiKey": "请先在顶部设置 API Key",
+      "characterDesignFailed": "角色设定图生成失败，请稍后重试",
+      "imageFailed": "生图失败，请稍后重试",
+      "noExportableImages": "暂无可导出的图片，请先生成角色设定图或漫画页",
+      "partialFailed": "部分漫画页生成失败，请查看卡片中的报错后重试"
+    }
+  },
+  "LegacyPanels": {
+    "storyInput": {
+      "title": "输入故事要求",
+      "description": "简单描述您想创作的故事，AI 将为您生成完整的多格漫画脚本大纲。",
+      "placeholder": "例如：在一个被遗忘的赛博朋克城市中，一名拥有读取记忆能力的侦探卷入了一场神秘的阴谋。风格偏向暗黑系，角色冷酷果断...",
+      "hint": "当前组件仅保留输入能力，实际生成按钮已迁移到左侧主侧边栏。"
+    },
+    "scriptPreview": {
+      "title": "生成的脚本大纲",
+      "description": "该预览组件保留为只读模式，完整操作已迁移到主工作台。",
+      "segmentCount": "{count} 个段落",
+      "empty": "暂无脚本内容"
+    },
+    "characterPreview": {
+      "title": "角色设定预览",
+      "description": "该组件已切换为只读预览，实际生成流程在主工作台中完成。",
+      "characterCount": "{count} 个角色",
+      "noCharacters": "暂无角色",
+      "imageAlt": "角色设定图",
+      "empty": "暂无角色设定"
+    },
+    "imageGallery": {
+      "empty": "生成的漫画画面将在这里显示",
+      "title": "生成结果 ({count} P)",
+      "downloadAll": "全部下载",
+      "saveImage": "保存图片",
+      "page": "第 {index} 页"
+    }
+  }
+}

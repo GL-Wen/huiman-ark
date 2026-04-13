@@ -1,0 +1,253 @@
+{
+  "Metadata": {
+    "title": "Huiman Ark - AI Comic Generation Workspace",
+    "description": "Input story inspiration to generate storyboard scripts, character designs, and comic pages. Suitable for novel adaptations, short comic planning, and visual creation."
+  },
+  "SeoMap": {
+    "initial": {
+      "title": "Huiman Ark - AI Comic Generation Workspace",
+      "description": "Input story inspiration to generate storyboard scripts, character designs, and comic pages. Suitable for novel adaptations, short comic planning, and visual creation."
+    },
+    "generating_story": {
+      "title": "Generating Story Outline - Huiman Ark",
+      "description": "Huiman Ark is generating multi-segment comic storyboard outlines based on your story description."
+    },
+    "story_done": {
+      "title": "Story Outline Generated - Huiman Ark",
+      "description": "Currently generated {segmentCount} comic segments, you can continue to generate character designs or directly generate comic pages."
+    },
+    "generating_characters": {
+      "title": "Generating Character Designs - Huiman Ark",
+      "description": "Huiman Ark is extracting character information and generating character designs to maintain consistency in subsequent comic characters."
+    },
+    "characters_done": {
+      "title": "Character Designs Completed - Huiman Ark",
+      "description": "Character designs completed, you can continue generating comic pages based on {segmentCount} storyboard segments."
+    },
+    "generating_comics": {
+      "title": "Generating Comic Pages - Huiman Ark",
+      "description": "Huiman Ark is generating comic pages based on the storyboard {storySummary}."
+    },
+    "done": {
+      "title": "Comic Generation Completed - Huiman Ark",
+      "description": "Comic generation is all completed{segmentCountText}, you can continue to preview, download, or export the entire comic."
+    }
+  },
+  "Page": {
+    "sr_title": "Huiman Ark AI Comic Generation Workspace",
+    "sr_description": "This is an AI creation workspace for generating comic story outlines, character designs, and storyboard comic pages, supporting reference images, character consistency control, and full comic export.",
+    "stage1": "Stage 1/3: Generating story segment outlines...",
+    "generating_characters": "Generating character designs..."
+  },
+  "Header": {
+    "appName": "Huiman Ark",
+    "settings": "API Settings",
+    "close": "Close",
+    "apiKey": "API Key",
+    "apiKeyHint": "Keys and configuration are stored only in your local browser cache and are never uploaded to any server.",
+    "buyApiKeyButton": "Buy Key",
+    "buyApiKeyHelper": "Don't have a key?",
+    "buyApiKeyLinkText": "Buy one",
+    "cancel": "Cancel",
+    "save": "Save Settings",
+    "language": "Language",
+    "zh": "中文",
+    "en": "English",
+    "ja": "日本語"
+  },
+  "EmptyCanvas": {
+    "brand": "Huiman Ark",
+    "welcomePrefix": "Welcome to",
+    "welcomeSuffix": ", where your multi-panel comic begins",
+    "description": "Describe your anime story or upload reference images, and AI will turn it into a personalized comic experience"
+  },
+  "Sidebar": {
+    "storyDescription": "Comic story description:",
+    "storyPlaceholder": "For example: In a forgotten cyberpunk city, a detective with memory-reading abilities gets entangled in a mysterious conspiracy. Dark style, ruthless characters...",
+    "generateStory": "Generate Story Outline",
+    "generatingStory": "Generating Story Outline...",
+    "advancedOptions": "Advanced options (model, style, segment count, etc.)",
+    "modelLabel": "Model:",
+    "outputLanguageLabel": "Output language:",
+    "paragraphCountLabel": "Segment count:",
+    "customParagraphPlaceholder": "Enter {min}-{max}",
+    "paragraphHint": "Supports the previous workflow with automatic, fixed, or custom segment counts.",
+    "panelsPerParagraphLabel": "Panels per segment:",
+    "panelsPerParagraphPlaceholder": "e.g. 3~6",
+    "panelsPerParagraphHint": "Controls the number of comic panels generated per segment (min 1)",
+    "ratioLabel": "Comic aspect ratio",
+    "ratioLandscape": "Landscape 16:9",
+    "ratioPortrait": "Portrait 9:16",
+    "ratioHint": "Choose the landscape or portrait frame for generated comic pages",
+    "animeStyleLabel": "Anime style:",
+    "customAnimeStylePlaceholder": "Enter a custom anime style",
+    "stylePreferenceLabel": "Style preference (optional):",
+    "stylePreferencePlaceholder": "For example: cute, dreamy, stylish, cozy...",
+    "referenceImagesLabel": "Reference images (optional, up to {count}):",
+    "uploadReference": "Click to upload reference images",
+    "uploadReferenceHint": "Supports PNG, JPG/JPEG, WEBP, HEIC, and HEIF | Up to {count} images",
+    "referenceImageAlt": "Reference image {index}",
+    "uploadedCount": "{current}/{total} uploaded. These images will influence both character design and comic page style.",
+    "clearHistory": "Clear History",
+    "defaultSegmentTitle": "Segment {index}",
+    "languages": {
+      "zh": "Simplified Chinese",
+      "en": "English",
+      "ja": "Japanese"
+    },
+    "paragraphOptions": {
+      "auto": "Automatic (Recommended, 8-15 segments)",
+      "five": "5 segments",
+      "eight": "8 segments",
+      "ten": "10 segments",
+      "twelve": "12 segments",
+      "fifteen": "15 segments",
+      "custom": "Custom segment count"
+    },
+    "animeStyles": {
+      "kawaii": "Cute Anime",
+      "shonen": "Shonen Action",
+      "shoujo": "Shoujo Romance",
+      "ghibli": "Ghibli-Inspired",
+      "fantasy": "Fantasy Adventure",
+      "isekai": "Isekai Adventure",
+      "slice-of-life": "Slice of Life",
+      "sports": "Sports Anime",
+      "cyberpunk": "Cyberpunk",
+      "mecha": "Mecha Sci-Fi",
+      "dark-fantasy": "Dark Fantasy",
+      "seinen": "Seinen Manga",
+      "manga-monochrome": "Black & White Manga",
+      "webtoon": "Webtoon",
+      "idol-pop": "Idol Pop",
+      "yokai": "Yokai Tales",
+      "guofeng": "Traditional Chinese",
+      "custom": "Custom Style"
+    },
+    "animeStylePreviewChips": {
+      "moe": "Moe",
+      "action": "Action",
+      "love": "Love",
+      "film": "Film",
+      "magic": "Magic",
+      "quest": "Quest",
+      "daily": "Daily",
+      "rush": "Rush",
+      "neon": "Neon",
+      "mecha": "Mecha",
+      "dark": "Dark",
+      "drama": "Drama",
+      "ink": "Ink",
+      "scroll": "Scroll",
+      "idol": "Idol",
+      "yokai": "Yokai",
+      "custom": "Custom"
+    },
+    "alerts": {
+      "maxReferenceImages": "You can upload up to {count} reference images",
+      "onlyImageFiles": "Only PNG, JPG/JPEG, WEBP, HEIC, and HEIF images are supported",
+      "readFileFailed": "Failed to read file: {name}",
+      "uploadFailed": "Failed to upload image",
+      "missingApiKey": "Please enter an API Key first",
+      "missingStoryInput": "Please enter a comic story description",
+      "missingCustomStyle": "You selected custom style. Please enter a detailed anime style description first",
+      "invalidParagraphRange": "Custom segment count must be between {min} and {max}",
+      "invalidPanelsPerParagraph": "Panels per segment cannot be less than 1",
+      "invalidResult": "The generated result does not match the storyboard format. Please try again",
+      "generateFailed": "Generation failed"
+    }
+  },
+  "StoryBoard": {
+    "title": "Story outline ready!",
+    "subtitle": "{count} segments generated. Review them and choose your next step.",
+    "generateCharacters": "Generate Character Designs",
+    "generatingCharacters": "Generating Character Designs...",
+    "skipToComics": "Skip to Comic Generation",
+    "helper": "Generate character designs first to keep character appearances consistent across pages",
+    "generateCurrentPage": "Generate This Page",
+    "defaultSegmentTitle": "Segment {index}",
+    "alerts": {
+      "missingApiKey": "Please enter an API Key first",
+      "generateCharactersFailed": "Failed to generate character designs"
+    }
+  },
+  "CharacterBoard": {
+    "defaultSegmentTitle": "Segment {index}",
+    "progressGenerating": "Generating comic pages {completed}/{total}",
+    "progressDone": "{completed}/{total} comic pages completed",
+    "withCharacterReference": "Character design references are attached. Upcoming pages will prioritize the established character look.",
+    "withoutCharacterReference": "No character design reference is being used. Pages will be generated directly from the script and style references.",
+    "exportAll": "Export Full Comic Set",
+    "generateAll": "Generate All Comics",
+    "generatingAll": "Generating all pages...",
+    "currentStage": "Current stage",
+    "stageCharacterCompleted": "Character design completed",
+    "stageCharacterSkipped": "Optional: character design skipped",
+    "stageComicGeneration": "Comic page generation",
+    "stageCompleteAll": "All comic pages completed",
+    "referenceTitle": "Character Design Reference",
+    "referenceHintWithImage": "This image will be used as the highest-priority reference when generating comic pages.",
+    "referenceHintWithoutImage": "If you skipped the character design image, pages will be generated directly from the script and style references.",
+    "characterDesignAlt": "Character design image",
+    "noCharacterDesignImage": "No character design image yet",
+    "noCharacterDesignImageHint": "You can go back to the previous step to generate one and improve character consistency across pages.",
+    "generateCharacterDesign": "Generate Character Design",
+    "regenerateCharacterDesign": "Regenerate Character Design",
+    "generatingCharacterDesign": "Generating Character Design...",
+    "downloadCharacterDesign": "Download Character Design",
+    "characterNotes": "Character Details",
+    "characterCard": "Character Card {index}",
+    "appearance": "Appearance",
+    "outfit": "Outfit",
+    "personality": "Personality",
+    "role": "Story Role",
+    "staging": "Camera Staging",
+    "noDescription": "No description",
+    "noCharacterText": "No character description has been generated yet. If you skip character design, pages will be generated from the script alone.",
+    "comicAlt": "Comic page for {title}",
+    "generationFailed": "Comic generation failed",
+    "notGeneratedYet": "Comic page not generated yet",
+    "notGeneratedHint": "Click the button below to generate this segment.",
+    "download": "Download",
+    "generating": "Generating...",
+    "regenerate": "Regenerate",
+    "generateComic": "Generate Page",
+    "previewAlt": "Preview",
+    "alerts": {
+      "missingApiKey": "Please set an API Key at the top first",
+      "characterDesignFailed": "Character design generation failed. Please try again later",
+      "imageFailed": "Image generation failed. Please try again later",
+      "noExportableImages": "No exportable images yet. Generate a character design or comic page first",
+      "partialFailed": "Some comic pages failed to generate. Check the error on each card and retry"
+    }
+  },
+  "LegacyPanels": {
+    "storyInput": {
+      "title": "Story Input",
+      "description": "Briefly describe the story you want to create and AI will generate a complete multi-panel comic outline.",
+      "placeholder": "For example: In a forgotten cyberpunk city, a detective with memory-reading abilities gets entangled in a mysterious conspiracy. Dark style, ruthless characters...",
+      "hint": "This component is now input-only. The actual generate button has been moved to the left sidebar."
+    },
+    "scriptPreview": {
+      "title": "Generated Story Outline",
+      "description": "This preview component is read-only. Full operations have been moved to the main workspace.",
+      "segmentCount": "{count} segments",
+      "empty": "No script content yet"
+    },
+    "characterPreview": {
+      "title": "Character Preview",
+      "description": "This component is now read-only. The actual generation flow is handled in the main workspace.",
+      "characterCount": "{count} characters",
+      "noCharacters": "No characters yet",
+      "imageAlt": "Character design image",
+      "empty": "No character description yet"
+    },
+    "imageGallery": {
+      "empty": "Generated comic pages will appear here",
+      "title": "Results ({count} pages)",
+      "downloadAll": "Download All",
+      "saveImage": "Save Image",
+      "page": "Page {index}"
+    }
+  }
+}
