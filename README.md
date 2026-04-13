@@ -23,6 +23,8 @@
 >
 > 通过结合 <span style="color: #2196F3; font-weight: bold;">大语言模型 (LLM)</span> 和 <span style="color: #00BCD4; font-weight: bold;">AI 图像生成技术</span>，它能帮助用户轻松地将文字故事转化为精美的漫画。
 
+**🌟 在线演示:** [https://huiman.antmoo.com](https://huiman.antmoo.com)
+
 ## ✨ 特性 (Features)
 
 - **📖 故事到漫画的智能转换**: 输入你的故事，自动生成分镜脚本和画面。
