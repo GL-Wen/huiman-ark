@@ -100,7 +100,7 @@ pnpm dev
 
 ## 📄 开源协议 (License)
 
-本项目基于 [MIT 协议](LICENSE) 开源。请自由地使用、修改和分发。
+本项目基于 [MIT 协议](LICENSE) 开源。
 
 ---
 
