@@ -41,6 +41,7 @@
   },
   "Header": {
     "appName": "Huiman Ark",
+    "github": "GitHub",
     "settings": "API設定",
     "close": "閉じる",
     "apiKey": "API Key",

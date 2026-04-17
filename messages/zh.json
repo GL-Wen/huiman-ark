@@ -41,6 +41,7 @@
   },
   "Header": {
     "appName": "绘漫方舟",
+    "github": "GitHub",
     "settings": "API 设置",
     "close": "关闭",
     "apiKey": "API Key",

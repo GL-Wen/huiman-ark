@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ExternalLink, Settings, X } from 'lucide-react';
+import { ExternalLink, Github, Settings, X } from 'lucide-react';
 import { appConfig } from '@/config/app';
 import { useAppStore } from '../../store';
 import { Logo } from '../common/Logo';
@@ -33,6 +33,16 @@ export const Header: React.FC = () => {
 
         <div className="flex items-center space-x-4">
           <LanguageSwitcher />
+          <a
+            href="https://github.com/GL-Wen/huiman-ark"
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 flex items-center space-x-2 transition-colors"
+            aria-label={t('github')}
+          >
+            <Github className="w-4 h-4" />
+            <span>{t('github')}</span>
+          </a>
           <button
             type="button"
             onClick={openApiSettings}

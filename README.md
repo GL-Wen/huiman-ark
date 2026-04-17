@@ -104,6 +104,10 @@ pnpm dev
 
 本项目基于 [MIT 协议](LICENSE) 开源。
 
+## 📌 商用说明
+
+- 如需商用，请联系 `toowell2015@126.com` 获取授权。
+
 ---
 
 <p align="center">
