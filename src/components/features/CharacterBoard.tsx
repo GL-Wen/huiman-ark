@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl';
 import { useAppStore, ScriptSegment } from '../../store';
 import { Users, Download, PlaySquare, ChevronDown, RefreshCw } from 'lucide-react';
+import { ImageLightbox, type ImageLightboxItem } from '../common/ImageLightbox';
 import {
   buildComicPagePrompt,
   buildComicReferenceInstruction,
@@ -52,7 +53,7 @@ export const CharacterBoard: React.FC = () => {
   const [generatingCuts, setGeneratingCuts] = useState<Record<string, boolean>>({});
   const [generationErrors, setGenerationErrors] = useState<Record<string, string>>({});
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [lightboxState, setLightboxState] = useState<{ items: ImageLightboxItem[]; index: number } | null>(null);
   const [expandedProfileCards, setExpandedProfileCards] = useState<Record<string, boolean>>({});
   const [regeneratingPortraitCards, setRegeneratingPortraitCards] = useState<Record<string, boolean>>({});
   const autoRunRef = useRef<string | null>(null);
@@ -69,6 +70,57 @@ export const CharacterBoard: React.FC = () => {
   );
   const isAllCompleted = generatedScript.length > 0 && completedCount >= generatedScript.length;
   const getDefaultTitle = useCallback((index: number) => t('defaultSegmentTitle', { index }), [t]);
+  const portraitPreviewItems = useMemo(
+    () =>
+      characterProfiles.flatMap((profile, index) => {
+        const portraitKey = `${profile.name}#${index}`;
+        const portrait = characterPortraits[portraitKey];
+
+        if (!portrait) {
+          return [];
+        }
+
+        return [
+          {
+            src: portrait,
+            alt: profile.name,
+            title: profile.name,
+            subtitle: t('referenceTitle'),
+            downloadFilename: `${profile.name}-portrait.png`,
+          },
+        ];
+      }),
+    [characterPortraits, characterProfiles, t],
+  );
+  const generatedComicPreviewItems = useMemo(
+    () =>
+      generatedScript.flatMap((script, index) => {
+        const generatedImage = generatedComics[script.id];
+
+        if (!generatedImage) {
+          return [];
+        }
+
+        return [
+          {
+            src: generatedImage,
+            alt: t('comicAlt', { title: script.title || getDefaultTitle(index + 1) }),
+            title: script.title || getDefaultTitle(index + 1),
+            subtitle: script.cut,
+            downloadFilename: `${script.cut.toLowerCase().replace(/\s+/g, '-')}.png`,
+          },
+        ];
+      }),
+    [generatedComics, generatedScript, getDefaultTitle, t],
+  );
+
+  const openLightbox = useCallback((items: ImageLightboxItem[], index: number) => {
+    if (!items.length) {
+      return;
+    }
+
+    setLightboxState({ items, index });
+  }, []);
 
   const buildReferenceImages = useCallback(
     (
@@ -446,8 +498,11 @@ export const CharacterBoard: React.FC = () => {
                           <img
                             src={portrait}
                             alt={profile.name}
-                            className="w-full h-full object-cover cursor-zoom-in"
-                            onClick={() => setPreviewImage(portrait)}
+                            className="h-full w-full cursor-zoom-in object-cover transition duration-300 hover:scale-105"
+                            onClick={() => {
+                              const previewIndex = portraitPreviewItems.findIndex((item) => item.src === portrait);
+                              openLightbox(portraitPreviewItems, previewIndex >= 0 ? previewIndex : 0);
+                            }}
                           />
                         ) : (
                           <span className="text-2xl font-bold text-gray-400">{profile.name.slice(0, 1)}</span>
@@ -563,8 +618,11 @@ export const CharacterBoard: React.FC = () => {
                   <img
                     src={generatedImage}
                     alt={t('comicAlt', { title: script.title || getDefaultTitle(index + 1) })}
-                    className="w-full h-full object-cover cursor-zoom-in"
-                    onClick={() => setPreviewImage(generatedImage)}
+                    className="h-full w-full cursor-zoom-in object-cover transition duration-300 hover:scale-[1.03]"
+                    onClick={() => {
+                      const previewIndex = generatedComicPreviewItems.findIndex((item) => item.src === generatedImage);
+                      openLightbox(generatedComicPreviewItems, previewIndex >= 0 ? previewIndex : 0);
+                    }}
                   />
                 ) : errorMessage ? (
                   <div className="w-full h-full bg-red-50 text-red-500 flex flex-col items-center justify-center text-center px-5">
@@ -634,27 +692,25 @@ export const CharacterBoard: React.FC = () => {
         })}
       </div>
 
-      {previewImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-6"
-          onClick={() => setPreviewImage(null)}
-        >
-          <div className="relative max-w-6xl max-h-full" onClick={(event) => event.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setPreviewImage(null)}
-              className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-white text-gray-700 shadow-lg"
-            >
-              ×
-            </button>
-            <img
-              src={previewImage}
-              alt={t('previewAlt')}
-              className="max-w-[90vw] max-h-[88vh] object-contain rounded-xl shadow-2xl bg-white"
-            />
-          </div>
-        </div>
-      )}
+      <ImageLightbox
+        isOpen={Boolean(lightboxState)}
+        items={lightboxState?.items ?? []}
+        activeIndex={lightboxState?.index ?? 0}
+        labels={{
+          close: t('lightbox.close'),
+          previous: t('lightbox.previous'),
+          next: t('lightbox.next'),
+          zoomIn: t('lightbox.zoomIn'),
+          zoomOut: t('lightbox.zoomOut'),
+          reset: t('lightbox.reset'),
+          download: t('download'),
+          imageCounter: (current, total) => t('lightbox.imageCounter', { current, total }),
+          keyboardHint: t('lightbox.keyboardHint'),
+        }}
+        onClose={() => setLightboxState(null)}
+        onIndexChange={(index) => setLightboxState((prev) => (prev ? { ...prev, index } : prev))}
+        onDownload={(item) => downloadImage(item.src, item.downloadFilename || 'image.png')}
+      />
     </div>
   );
 };

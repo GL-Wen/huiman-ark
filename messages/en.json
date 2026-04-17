@@ -180,6 +180,16 @@
     "regenerate": "Regenerate",
     "generateComic": "Generate Page",
     "previewAlt": "Preview",
+    "lightbox": {
+      "close": "Close preview",
+      "previous": "Previous image",
+      "next": "Next image",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "reset": "Reset zoom",
+      "imageCounter": "Image {current} of {total}",
+      "keyboardHint": "Use arrow keys to switch, Esc to close, +/- to zoom, and 0 to reset"
+    },
     "alerts": {
       "characterDesignFailed": "Character design generation failed. Please try again later",
       "imageFailed": "Image generation failed. Please try again later",

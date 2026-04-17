@@ -180,6 +180,16 @@
     "regenerate": "再生成",
     "generateComic": "漫画を生成",
     "previewAlt": "プレビュー画像",
+    "lightbox": {
+      "close": "プレビューを閉じる",
+      "previous": "前の画像",
+      "next": "次の画像",
+      "zoomIn": "拡大",
+      "zoomOut": "縮小",
+      "reset": "ズームをリセット",
+      "imageCounter": "{current} / {total} 枚目",
+      "keyboardHint": "左右キーで切替、Esc で閉じる、+/- で拡大縮小、0 でリセット"
+    },
     "alerts": {
       "characterDesignFailed": "キャラクター設定図の生成に失敗しました。しばらくしてから再試行してください",
       "imageFailed": "画像生成に失敗しました。しばらくしてから再試行してください",
