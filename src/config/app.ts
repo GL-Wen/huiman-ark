@@ -5,6 +5,6 @@
  * @Description: Do not edit
  */
 export const appConfig = {
-  apiKeyPurchaseUrl: 'https://api.antmoo.com',
+  apiKeyPurchaseUrl: 'https://api.antmoo.com/register?aff=EagE',
   apiBaseUrl: 'https://api.antmoo.com',
 } as const;
