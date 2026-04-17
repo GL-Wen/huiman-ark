@@ -94,12 +94,6 @@ pnpm dev
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-## Documentation Structure
-
-- `README.md`: Default landing page with language navigation.
-- `README.zh-CN.md`: Full Chinese documentation.
-- `README.en.md`: Full English documentation.
-
 ## Contributing
 
 Contributions via Issues and Pull Requests are welcome.
