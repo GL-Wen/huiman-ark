@@ -37,20 +37,20 @@ export const Header: React.FC = () => {
             href="https://github.com/GL-Wen/huiman-ark"
             target="_blank"
             rel="noreferrer"
-            className="px-4 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 flex items-center space-x-2 transition-colors"
+            className="h-9 w-9 text-gray-600 bg-gray-50 rounded-md hover:bg-gray-100 flex items-center justify-center transition-colors"
             aria-label={t('github')}
+            title={t('github')}
           >
             <Github className="w-4 h-4" />
-            <span>{t('github')}</span>
           </a>
           <button
             type="button"
             onClick={openApiSettings}
-            className="px-4 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 flex items-center space-x-2 transition-colors"
+            className="h-9 w-9 text-gray-600 bg-gray-50 rounded-md hover:bg-gray-100 flex items-center justify-center transition-colors"
             aria-label={t('settings')}
+            title={t('settings')}
           >
             <Settings className="w-4 h-4" />
-            <span>{t('settings')}</span>
           </button>
         </div>
       </header>

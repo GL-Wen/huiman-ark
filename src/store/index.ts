@@ -173,6 +173,7 @@ export const useAppStore = create<AppState>()(
           model: 'gpt-5.4',
           paragraphCount: 'auto',
           customParagraphCount: '10',
+          panelsPerParagraph: '3~6',
           animeStyle: 'guofeng',
           customAnimeStyle: '',
           style: '',

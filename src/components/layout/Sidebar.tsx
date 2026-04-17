@@ -16,6 +16,8 @@ import { animeStyleOptions, getAnimeStylePrompt } from '../../lib/animeStyles';
 
 const MIN_SCENE_COUNT = 1;
 const MAX_SCENE_COUNT = 100;
+const DEFAULT_PANELS_PER_PARAGRAPH = '3~6';
+const PANELS_RANGE_PATTERN = /^\s*(\d+)\s*(?:~|-|—|–|到|至)\s*(\d+)\s*$/;
 const DEFAULT_OUTPUT_LANGUAGE_BY_LOCALE: Record<AppLocale, string> = {
   zh: '中文（简体）',
   en: 'English',
@@ -44,6 +46,38 @@ const normalizeParagraphCountValue = (value: string) => {
   if (value === '15段') return '15';
   if (['auto', '5', '8', '10', '12', '15', 'custom'].includes(value)) return value;
   return 'auto';
+};
+
+const normalizePanelsPerParagraphRange = (value: string) => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return DEFAULT_PANELS_PER_PARAGRAPH;
+  }
+
+  const match = trimmedValue.match(PANELS_RANGE_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  const minPanels = Number.parseInt(match[1], 10);
+  const maxPanels = Number.parseInt(match[2], 10);
+  if (!Number.isInteger(minPanels) || !Number.isInteger(maxPanels) || minPanels < 1 || maxPanels < minPanels) {
+    return null;
+  }
+
+  return `${minPanels}~${maxPanels}`;
+};
+
+const getPanelsPerParagraphInputValues = (value: string) => {
+  const normalizedRange = normalizePanelsPerParagraphRange(value);
+  const fallbackRange = normalizePanelsPerParagraphRange(DEFAULT_PANELS_PER_PARAGRAPH);
+  const matchedRange = normalizedRange ?? fallbackRange;
+  const match = matchedRange?.match(PANELS_RANGE_PATTERN);
+
+  return {
+    min: match?.[1] ?? '',
+    max: match?.[2] ?? '',
+  };
 };
 
 const parseScriptSegments = (result: string, getDefaultTitle: (index: number) => string): ScriptSegment[] => {
@@ -152,6 +186,12 @@ export const Sidebar: React.FC = () => {
 
   const isGeneratingStory = currentStep === 'generating_story';
   const paragraphCountValue = normalizeParagraphCountValue(paragraphCount);
+  const initialPanelsRange = React.useMemo(
+    () => getPanelsPerParagraphInputValues(panelsPerParagraph),
+    [panelsPerParagraph],
+  );
+  const [minPanelsPerParagraph, setMinPanelsPerParagraph] = React.useState(initialPanelsRange.min);
+  const [maxPanelsPerParagraph, setMaxPanelsPerParagraph] = React.useState(initialPanelsRange.max);
   const getDefaultTitle = React.useCallback((index: number) => t('defaultSegmentTitle', { index }), [t]);
   const getAnimeStyleDisplayLabel = React.useCallback(
     (option: (typeof animeStyleOptions)[number]) => {
@@ -193,6 +233,12 @@ export const Sidebar: React.FC = () => {
     setLanguage,
     storyInput,
   ]);
+
+  React.useEffect(() => {
+    const nextRange = getPanelsPerParagraphInputValues(panelsPerParagraph);
+    setMinPanelsPerParagraph(nextRange.min);
+    setMaxPanelsPerParagraph(nextRange.max);
+  }, [panelsPerParagraph]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
@@ -264,12 +310,10 @@ export const Sidebar: React.FC = () => {
       paragraphPrompt = `【段落数量】请生成 ${parsedCount} 个段落。`;
     }
 
-    if (panelsPerParagraph.trim()) {
-      const match = panelsPerParagraph.match(/\d+/);
-      if (match && Number.parseInt(match[0], 10) < 1) {
-        alert(t('alerts.invalidPanelsPerParagraph'));
-        return;
-      }
+    const normalizedPanelsPerParagraph = normalizePanelsPerParagraphRange(panelsPerParagraph);
+    if (!normalizedPanelsPerParagraph) {
+      alert(t('alerts.invalidPanelsPerParagraph'));
+      return;
     }
 
     setCurrentStep('generating_story');
@@ -290,7 +334,7 @@ export const Sidebar: React.FC = () => {
       【输出语言】请使用${selectedOutputLanguage}编写所有段落、对话、旁白和音效。
       【漫画比例】后续漫画页面和角色设定图请使用 ${ratio} 比例生成。
       ${paragraphPrompt}
-      【画面格子数】请控制每段生成的漫画包含的格子数在 ${panelsPerParagraph || '3~6'} 个左右。
+      【画面格子数】请控制每段生成的漫画包含的格子数在 ${normalizedPanelsPerParagraph} 个左右。
       `;
 
       const result = await generateContent(apiKey, model, prompt, STORY_EXPERT_PROMPT);
@@ -449,13 +493,33 @@ export const Sidebar: React.FC = () => {
                   <span className="text-yellow-500 mr-2">🔲</span>
                   {t('panelsPerParagraphLabel')}
                 </label>
-                <input
-                  type="text"
-                  value={panelsPerParagraph}
-                  onChange={(e) => setPanelsPerParagraph(e.target.value)}
-                  placeholder={t('panelsPerParagraphPlaceholder')}
-                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <input
+                    type="number"
+                    min={1}
+                    value={minPanelsPerParagraph}
+                    onChange={(e) => {
+                      const nextMin = e.target.value;
+                      setMinPanelsPerParagraph(nextMin);
+                      setPanelsPerParagraph(`${nextMin}~${maxPanelsPerParagraph}`);
+                    }}
+                    placeholder={t('panelsPerParagraphMinPlaceholder')}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-400">~</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={maxPanelsPerParagraph}
+                    onChange={(e) => {
+                      const nextMax = e.target.value;
+                      setMaxPanelsPerParagraph(nextMax);
+                      setPanelsPerParagraph(`${minPanelsPerParagraph}~${nextMax}`);
+                    }}
+                    placeholder={t('panelsPerParagraphMaxPlaceholder')}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
                 <p className="text-[10px] text-gray-400 mt-1">{t('panelsPerParagraphHint')}</p>
               </div>
 

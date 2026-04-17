@@ -734,6 +734,7 @@ export const generateCharacterAssets = async ({
   style,
   referenceImages,
   existingCharacterText,
+  skipImageGeneration = false,
 }: {
   apiKey: string;
   model: string;
@@ -745,6 +746,7 @@ export const generateCharacterAssets = async ({
   style: string;
   referenceImages: string[];
   existingCharacterText?: string | null;
+  skipImageGeneration?: boolean;
 }) => {
   const characterText =
     sanitizeCharacterDesignText(existingCharacterText || '') ||
@@ -768,22 +770,27 @@ ${generatedScript.map((segment) => segment.raw).join('\n\n<scene>\n\n')}
       ),
     );
   const characterNames = extractCharacterNames(characterText);
-  const characterImagePrompt = buildCharacterDesignImagePrompt({
-    storyInput,
-    characterText,
-    characterCount: characterNames.length,
-    language,
-    aspectRatio,
-    animeStyle,
-    style,
-    referenceImagesCount: referenceImages.length,
-  });
-  const characterImage = await generateImage(apiKey, characterImagePrompt, {
-    referenceImages,
-    aspectRatio,
-    referenceInstruction: buildCharacterDesignReferenceInstruction(referenceImages.length),
-    referenceLabels: buildCharacterDesignReferenceLabels(referenceImages.length),
-  });
+  const characterImage = skipImageGeneration
+    ? null
+    : await generateImage(
+        apiKey,
+        buildCharacterDesignImagePrompt({
+          storyInput,
+          characterText,
+          characterCount: characterNames.length,
+          language,
+          aspectRatio,
+          animeStyle,
+          style,
+          referenceImagesCount: referenceImages.length,
+        }),
+        {
+          referenceImages,
+          aspectRatio,
+          referenceInstruction: buildCharacterDesignReferenceInstruction(referenceImages.length),
+          referenceLabels: buildCharacterDesignReferenceLabels(referenceImages.length),
+        },
+      );
 
   return {
     characterText,

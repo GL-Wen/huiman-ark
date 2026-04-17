@@ -7,6 +7,7 @@
 'use client';
 
 import React from 'react';
+import { ChevronDown, Languages } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type AppLocale } from '@/i18n/routing';
 import { useRouter, usePathname } from '@/i18n/routing';
@@ -26,17 +27,24 @@ export const LanguageSwitcher: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="relative">
       <label htmlFor="language-select" className="sr-only">
         {t('language')}
       </label>
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-600">
+        <Languages className="h-4 w-4" />
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
+        <ChevronDown className="h-4 w-4" />
+      </div>
       <select
         id="language-select"
         value={locale}
         onChange={handleLanguageChange}
         disabled={isPending}
-        className="px-2 py-1 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-300 transition-colors"
+        className="h-9 w-11 appearance-none rounded-md bg-gray-50 text-transparent hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-300 transition-colors"
         aria-label={t('language')}
+        title={t('language')}
       >
         <option value="zh">{t('zh')}</option>
         <option value="en">{t('en')}</option>
