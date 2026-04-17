@@ -75,11 +75,7 @@ yarn install
 pnpm install
 ```
 
-### 3. Configure API settings
-
-Core features rely on external AI services. Configure the API host and key in `src/config/app.ts` before running the app.
-
-### 4. Start the development server
+### 3. Start the development server
 
 ```bash
 npm run dev
@@ -106,5 +102,5 @@ Contributions via Issues and Pull Requests are welcome.
 
 ## License and Commercial Use
 
-- License: The README currently references MIT. Adding an actual `LICENSE` file is recommended for a complete repository setup.
-- Commercial use: Contact `toowell2015@126.com` for authorization.
+- License: This project is provided as open source by default, and the source code is available for learning, communication, and non-commercial use.
+- Commercial use: Please obtain authorization from the project author before any commercial use.
