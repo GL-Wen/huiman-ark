@@ -143,6 +143,7 @@ export const Sidebar: React.FC = () => {
     setCharacterDesign,
     setCharacterDesignImage,
     setCharacterNames,
+    clearCharacterPortraits,
     setGeneratedComics,
     setPendingComicId,
     generatedScript,
@@ -275,6 +276,7 @@ export const Sidebar: React.FC = () => {
     setCharacterDesign(null);
     setCharacterDesignImage(null);
     setCharacterNames([]);
+    clearCharacterPortraits();
     setGeneratedComics({});
     setPendingComicId(null);
 

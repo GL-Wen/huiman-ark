@@ -1,15 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAppStore, ScriptSegment } from '../../store';
-import { Users, Download, PlaySquare, ImagePlus } from 'lucide-react';
+import { Users, Download, PlaySquare, ImagePlus, RefreshCw, X } from 'lucide-react';
 import {
   buildComicPagePrompt,
   buildComicReferenceInstruction,
-  buildComicReferenceLabels,
   generateCharacterAssets,
+  generateCharacterPortraits,
   generateImage,
   parseCharacterProfiles,
   sanitizeCharacterDesignText,
+  pickComicCharacterProfiles,
+  type CharacterReferenceMode,
 } from '../../api/llm';
 import { getAnimeStylePrompt } from '../../lib/animeStyles';
 
@@ -50,12 +52,21 @@ export const CharacterBoard: React.FC = () => {
     customAnimeStyle,
     style,
     referenceImages,
+    characterPortraits,
+    setCharacterPortrait,
+    setCharacterPortraits,
+    clearCharacterPortraits,
+    portraitGenerating,
+    setPortraitGenerating,
+    upgradeBannerDismissed,
+    setUpgradeBannerDismissed,
   } = useAppStore();
   const [generatingCuts, setGeneratingCuts] = useState<Record<string, boolean>>({});
   const [generationErrors, setGenerationErrors] = useState<Record<string, string>>({});
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [isRegeneratingCharacterDesign, setIsRegeneratingCharacterDesign] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [portraitFailures, setPortraitFailures] = useState<string[]>([]);
   const autoRunRef = useRef<string | null>(null);
   const displayCharacterDesign = useMemo(
     () => (characterDesign ? sanitizeCharacterDesignText(characterDesign) : ''),
@@ -71,8 +82,61 @@ export const CharacterBoard: React.FC = () => {
   const getDefaultTitle = useCallback((index: number) => t('defaultSegmentTitle', { index }), [t]);
 
   const buildReferenceImages = useCallback(
-    () => (characterDesignImage ? [characterDesignImage] : referenceImages),
-    [characterDesignImage, referenceImages],
+    (script: ScriptSegment): {
+      mode: CharacterReferenceMode;
+      images: string[];
+      labels: string[];
+      portraitNames: string[];
+    } => {
+      if (!characterDesignImage) {
+        if (referenceImages.length > 0) {
+          return { mode: 'user', images: referenceImages, labels: [], portraitNames: [] };
+        }
+        return { mode: 'none', images: [], labels: [], portraitNames: [] };
+      }
+
+      const matchedProfiles = pickComicCharacterProfiles({
+        characterDesign,
+        cleanedSegmentRaw: script.raw.replace(/^\s*\[[^\]]+\]\s*\n?/, '').trim(),
+        scene: script.scene,
+        plot: script.plot,
+        desc: script.desc,
+        characterNames,
+      });
+
+      const MAX_REF = 6;
+      const slicedMatches = matchedProfiles.slice(0, MAX_REF);
+      const matchedPortraitKeys: string[] = [];
+
+      for (const { profile, originalIndex } of slicedMatches) {
+        const key = `${profile.name}#${originalIndex}`;
+        if (characterPortraits[key]) {
+          matchedPortraitKeys.push(key);
+        }
+      }
+
+      if (matchedPortraitKeys.length > 0) {
+        const portraitImages = matchedPortraitKeys.map((key) => characterPortraits[key]);
+        const portraitDisplayNames = matchedPortraitKeys.map((key) => {
+          const [name] = key.split('#');
+          return name;
+        });
+        const remainingSlots = MAX_REF - portraitImages.length;
+        const userRefImages = referenceImages.slice(0, remainingSlots);
+        const images = [...portraitImages, ...userRefImages];
+        const labels = [
+          ...matchedPortraitKeys.map((key) => {
+            const [name] = key.split('#');
+            return `角色参考：${name}`;
+          }),
+          ...Array(userRefImages.length).fill(''),
+        ];
+        return { mode: 'portraits', images, labels, portraitNames: portraitDisplayNames };
+      }
+
+      return { mode: 'sheet', images: [characterDesignImage], labels: ['角色设定总图'], portraitNames: [] };
+    },
+    [characterDesign, characterDesignImage, characterPortraits, characterNames, referenceImages],
   );
 
   const resolveStepAfterSingle = useCallback(
@@ -108,6 +172,8 @@ export const CharacterBoard: React.FC = () => {
       });
 
       try {
+        const { mode, images, labels, portraitNames } = buildReferenceImages(script);
+
         const prompt = buildComicPagePrompt({
           segment: script,
           storyInput,
@@ -117,20 +183,17 @@ export const CharacterBoard: React.FC = () => {
           aspectRatio: ratio,
           animeStyle: getAnimeStylePrompt(animeStyle, customAnimeStyle),
           style,
-          hasCharacterReference: Boolean(characterDesignImage),
-          referenceImagesCount: referenceImages.length,
+          characterReferenceMode: mode,
+          portraitNames,
         });
         const imageUrl = await generateImage(apiKey, prompt, {
-          referenceImages: buildReferenceImages(),
+          referenceImages: images,
           aspectRatio: ratio,
           referenceInstruction: buildComicReferenceInstruction({
-            hasCharacterReference: Boolean(characterDesignImage),
-            referenceImagesCount: referenceImages.length,
+            characterReferenceMode: mode,
+            referenceImagesCount: images.length,
           }),
-          referenceLabels: buildComicReferenceLabels({
-            hasCharacterReference: Boolean(characterDesignImage),
-            referenceImagesCount: referenceImages.length,
-          }),
+          referenceLabels: labels,
         });
 
         setGeneratedComic(script.id, imageUrl);
@@ -161,7 +224,6 @@ export const CharacterBoard: React.FC = () => {
       apiKey,
       buildReferenceImages,
       characterDesign,
-      characterDesignImage,
       characterNames,
       displayCharacterDesign,
       animeStyle,
@@ -169,7 +231,6 @@ export const CharacterBoard: React.FC = () => {
       language,
       openApiSettings,
       ratio,
-      referenceImages.length,
       resolveStepAfterSingle,
       setCurrentStep,
       setGeneratedComic,
@@ -187,6 +248,8 @@ export const CharacterBoard: React.FC = () => {
     }
 
     setIsRegeneratingCharacterDesign(true);
+    clearCharacterPortraits();
+    setPortraitFailures([]);
 
     try {
       const {
@@ -209,6 +272,38 @@ export const CharacterBoard: React.FC = () => {
       setCharacterDesign(characterText);
       setCharacterDesignImage(characterImage);
       setCharacterNames(nextCharacterNames);
+
+      const profiles = parseCharacterProfiles(sanitizeCharacterDesignText(characterText));
+      if (profiles.length === 0) {
+        return;
+      }
+
+      const targetProfiles = profiles.map((profile, i) => ({ profile, originalIndex: i }));
+
+      for (const { profile, originalIndex } of targetProfiles) {
+        const key = `${profile.name}#${originalIndex}`;
+        setPortraitGenerating(key, true);
+      }
+
+      try {
+        const { portraits, failures } = await generateCharacterPortraits(apiKey, {
+          characterText,
+          language,
+          animeStyle: getAnimeStylePrompt(animeStyle, customAnimeStyle),
+          style,
+          sheetImage: characterImage,
+          referenceImages,
+          targetProfiles,
+        });
+
+        setCharacterPortraits(portraits);
+        setPortraitFailures(failures);
+      } finally {
+        for (const { profile, originalIndex } of targetProfiles) {
+          const key = `${profile.name}#${originalIndex}`;
+          setPortraitGenerating(key, false);
+        }
+      }
     } catch (error) {
       alert(error instanceof Error ? error.message : t('alerts.characterDesignFailed'));
     } finally {
@@ -219,6 +314,7 @@ export const CharacterBoard: React.FC = () => {
     animeStyle,
     characterDesign,
     customAnimeStyle,
+    clearCharacterPortraits,
     displayCharacterDesign,
     generatedScript,
     language,
@@ -229,10 +325,126 @@ export const CharacterBoard: React.FC = () => {
     setCharacterDesign,
     setCharacterDesignImage,
     setCharacterNames,
+    setCharacterPortraits,
+    setPortraitGenerating,
     storyInput,
     style,
     t,
   ]);
+
+  const handleFillMissingPortraits = useCallback(async () => {
+    if (!apiKey || !characterDesignImage) {
+      if (!apiKey) openApiSettings();
+      return;
+    }
+
+    const profiles = parseCharacterProfiles(displayCharacterDesign);
+    const existingKeys = new Set(Object.keys(characterPortraits));
+    const targetProfiles: { profile: typeof profiles[0]; originalIndex: number }[] = [];
+
+    profiles.forEach((profile, index) => {
+      const key = `${profile.name}#${index}`;
+      if (!existingKeys.has(key)) {
+        targetProfiles.push({ profile, originalIndex: index });
+      }
+    });
+
+    if (targetProfiles.length === 0) return;
+
+    for (const { originalIndex } of targetProfiles) {
+      const profile = profiles[originalIndex];
+      const key = `${profile.name}#${originalIndex}`;
+      setPortraitGenerating(key, true);
+    }
+
+    try {
+      const { portraits, failures } = await generateCharacterPortraits(apiKey, {
+        characterText: displayCharacterDesign,
+        language,
+        animeStyle: getAnimeStylePrompt(animeStyle, customAnimeStyle),
+        style,
+        sheetImage: characterDesignImage,
+        referenceImages,
+        targetProfiles,
+      });
+
+      setCharacterPortraits({ ...characterPortraits, ...portraits });
+      setPortraitFailures(failures);
+    } finally {
+      for (const { originalIndex } of targetProfiles) {
+        const profile = profiles[originalIndex];
+        const key = `${profile.name}#${originalIndex}`;
+        setPortraitGenerating(key, false);
+      }
+    }
+  }, [
+    apiKey,
+    animeStyle,
+    characterDesignImage,
+    characterPortraits,
+    customAnimeStyle,
+    displayCharacterDesign,
+    language,
+    openApiSettings,
+    referenceImages,
+    setCharacterPortraits,
+    setPortraitGenerating,
+    style,
+  ]);
+
+  const handleRegenerateSinglePortrait = useCallback(
+    async (key: string) => {
+      if (!apiKey) {
+        openApiSettings();
+        return;
+      }
+
+      const [name, indexStr] = key.split('#');
+      const index = parseInt(indexStr, 10);
+      const profiles = parseCharacterProfiles(displayCharacterDesign);
+      const profile = profiles[index];
+
+      if (!profile || profile.name !== name) {
+        return;
+      }
+
+      setPortraitGenerating(key, true);
+
+      try {
+        const { portraits } = await generateCharacterPortraits(apiKey, {
+          characterText: displayCharacterDesign,
+          language,
+          animeStyle: getAnimeStylePrompt(animeStyle, customAnimeStyle),
+          style,
+          sheetImage: characterDesignImage,
+          referenceImages,
+          targetProfiles: [{ profile, originalIndex: index }],
+        });
+
+        if (portraits[key]) {
+          setCharacterPortrait(key, portraits[key]);
+          setPortraitFailures((prev) => prev.filter((f) => !f.startsWith(`${name}（`)));
+        }
+      } catch {
+        // keep failure state
+      } finally {
+        setPortraitGenerating(key, false);
+      }
+    },
+    [
+      apiKey,
+      animeStyle,
+      characterDesignImage,
+      customAnimeStyle,
+      displayCharacterDesign,
+      language,
+      openApiSettings,
+      referenceImages,
+      setCharacterPortrait,
+      style,
+      setPortraitGenerating,
+    ],
+  );
 
   const handleExportAll = useCallback(() => {
     const exportQueue: Array<{ url: string; filename: string }> = [];
@@ -388,6 +600,25 @@ export const CharacterBoard: React.FC = () => {
 
           <div className="p-5 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6">
             <div className="flex flex-col">
+              {characterDesignImage && Object.keys(characterPortraits).length === 0 && !upgradeBannerDismissed && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-500">⚡</span>
+                    <p className="text-sm text-amber-800">
+                      检测到旧角色设定，建议重新生成以获得更稳定的角色一致性
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setUpgradeBannerDismissed(true)}
+                      className="text-amber-500 hover:text-amber-700 p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="w-full aspect-[16/9] bg-gray-100 rounded-lg border border-gray-200 mb-4 overflow-hidden flex items-center justify-center">
                 {characterDesignImage ? (
                   <img
@@ -449,6 +680,81 @@ export const CharacterBoard: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {characterDesignImage && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-gray-700">
+                      <span className="text-gray-500 mr-1">👤</span>
+                      单角色参考图
+                    </h3>
+                    {portraitFailures.length > 0 && (
+                      <button
+                        onClick={handleFillMissingPortraits}
+                        className="text-xs px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full hover:bg-amber-100 transition-colors"
+                      >
+                        补齐缺失角色图
+                      </button>
+                    )}
+                  </div>
+
+                  {portraitFailures.length > 0 && (
+                    <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-xs text-amber-700">
+                        以下角色图生成失败：{portraitFailures.join('、')}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {characterProfiles.map((profile, index) => {
+                      const key = `${profile.name}#${index}`;
+                      const portrait = characterPortraits[key];
+                      const isGenerating = portraitGenerating[key];
+
+                      return (
+                        <div
+                          key={key}
+                          className="relative group flex flex-col items-center"
+                        >
+                          <div className="w-full aspect-[9/16] bg-gray-100 rounded-lg border border-gray-200 overflow-hidden">
+                            {isGenerating ? (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                              </div>
+                            ) : portrait ? (
+                              <img
+                                src={portrait}
+                                alt={profile.name}
+                                className="w-full h-full object-cover cursor-zoom-in"
+                                onClick={() => setPreviewImage(portrait)}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <span className="text-gray-300 text-xs">等待生成</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-1.5 flex items-center justify-between w-full">
+                            <span className="text-xs text-gray-600 truncate max-w-[80%]" title={profile.name}>
+                              {profile.name}
+                            </span>
+                            {portrait && !isGenerating && (
+                              <button
+                                onClick={() => handleRegenerateSinglePortrait(key)}
+                                className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="重新生成"
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="relative lg:h-auto h-[420px]">

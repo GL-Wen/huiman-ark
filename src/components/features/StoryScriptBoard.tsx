@@ -7,7 +7,14 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useAppStore } from '../../store';
-import { generateCharacterAssets, isInvalidStoryMetaBlock, sanitizeStorySegmentText } from '../../api/llm';
+import {
+  generateCharacterAssets,
+  generateCharacterPortraits,
+  isInvalidStoryMetaBlock,
+  parseCharacterProfiles,
+  sanitizeCharacterDesignText,
+  sanitizeStorySegmentText,
+} from '../../api/llm';
 import { Clapperboard, Users, FastForward, PlaySquare } from 'lucide-react';
 import { getAnimeStylePrompt } from '../../lib/animeStyles';
 
@@ -43,6 +50,9 @@ export const StoryScriptBoard: React.FC = () => {
     setCharacterDesign,
     setCharacterDesignImage,
     setCharacterNames,
+    setCharacterPortraits,
+    clearCharacterPortraits,
+    setPortraitGenerating,
     setPendingComicId,
   } = useAppStore();
   const getDefaultTitle = React.useCallback((index: number) => t('defaultSegmentTitle', { index }), [t]);
@@ -62,6 +72,7 @@ export const StoryScriptBoard: React.FC = () => {
 
     setIsGeneratingCharacters(true);
     setCurrentStep('generating_characters');
+    clearCharacterPortraits();
 
     try {
       const selectedAnimeStyle = getAnimeStylePrompt(animeStyle, customAnimeStyle);
@@ -81,6 +92,31 @@ export const StoryScriptBoard: React.FC = () => {
       setCharacterDesignImage(characterImage);
       setCharacterNames(characterNames);
       setPendingComicId(null);
+
+      const profiles = parseCharacterProfiles(sanitizeCharacterDesignText(characterText));
+      if (profiles.length > 0) {
+        const targetProfiles = profiles.map((profile, i) => ({ profile, originalIndex: i }));
+        for (const { profile, originalIndex } of targetProfiles) {
+          setPortraitGenerating(`${profile.name}#${originalIndex}`, true);
+        }
+        try {
+          const { portraits } = await generateCharacterPortraits(apiKey, {
+            characterText,
+            language,
+            animeStyle: selectedAnimeStyle,
+            style,
+            sheetImage: characterImage,
+            referenceImages,
+            targetProfiles,
+          });
+          setCharacterPortraits(portraits);
+        } finally {
+          for (const { profile, originalIndex } of targetProfiles) {
+            setPortraitGenerating(`${profile.name}#${originalIndex}`, false);
+          }
+        }
+      }
+
       setCurrentStep('characters_done');
     } catch (error) {
       alert(error instanceof Error ? error.message : t('alerts.generateCharactersFailed'));
@@ -94,6 +130,7 @@ export const StoryScriptBoard: React.FC = () => {
     setCharacterDesign(null);
     setCharacterDesignImage(null);
     setCharacterNames([]);
+    clearCharacterPortraits();
     setPendingComicId('__all__');
     setCurrentStep('generating_comics');
   };

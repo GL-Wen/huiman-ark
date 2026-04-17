@@ -73,6 +73,17 @@ interface AppState {
   setGeneratedComics: (comics: GeneratedComicMap) => void;
   setGeneratedComic: (scriptId: string, image: string) => void;
 
+  characterPortraits: Record<string, string>;
+  setCharacterPortrait: (key: string, image: string) => void;
+  setCharacterPortraits: (portraits: Record<string, string>) => void;
+  clearCharacterPortraits: () => void;
+
+  portraitGenerating: Record<string, boolean>;
+  setPortraitGenerating: (key: string, generating: boolean) => void;
+
+  upgradeBannerDismissed: boolean;
+  setUpgradeBannerDismissed: (dismissed: boolean) => void;
+
   pendingComicId: string | null;
   setPendingComicId: (scriptId: string | null) => void;
 
@@ -136,6 +147,23 @@ export const useAppStore = create<AppState>()(
           },
         })),
 
+      characterPortraits: {},
+      setCharacterPortrait: (key, image) =>
+        set((state) => ({
+          characterPortraits: { ...state.characterPortraits, [key]: image },
+        })),
+      setCharacterPortraits: (portraits) => set({ characterPortraits: portraits }),
+      clearCharacterPortraits: () => set({ characterPortraits: {} }),
+
+      portraitGenerating: {},
+      setPortraitGenerating: (key, generating) =>
+        set((state) => ({
+          portraitGenerating: { ...state.portraitGenerating, [key]: generating },
+        })),
+
+      upgradeBannerDismissed: false,
+      setUpgradeBannerDismissed: (dismissed) => set({ upgradeBannerDismissed: dismissed }),
+
       pendingComicId: null,
       setPendingComicId: (scriptId) => set({ pendingComicId: scriptId }),
 
@@ -155,6 +183,9 @@ export const useAppStore = create<AppState>()(
           characterDesignImage: null,
           characterNames: [],
           generatedComics: {},
+          characterPortraits: {},
+          portraitGenerating: {},
+          upgradeBannerDismissed: false,
           pendingComicId: null,
         }),
     }),
@@ -170,6 +201,7 @@ export const useAppStore = create<AppState>()(
         animeStyle: state.animeStyle,
         customAnimeStyle: state.customAnimeStyle,
         style: state.style,
+        upgradeBannerDismissed: state.upgradeBannerDismissed,
       }),
     },
   ),

@@ -19,6 +19,7 @@ type SessionSnapshot = {
   characterDesignImage: string | null;
   characterNames: string[];
   generatedComics: GeneratedComicMap;
+  characterPortraits: Record<string, string>;
   currentStep: Step;
 };
 
@@ -52,7 +53,8 @@ const isMeaningfulSnapshot = (snapshot: SessionSnapshot) =>
       snapshot.generatedScript.length ||
       snapshot.characterDesign ||
       snapshot.characterDesignImage ||
-      Object.keys(snapshot.generatedComics).length,
+      Object.keys(snapshot.generatedComics).length ||
+      Object.keys(snapshot.characterPortraits).length,
   );
 
 export const useSessionPersistence = () => {
@@ -76,6 +78,7 @@ export const useSessionPersistence = () => {
       characterDesignImage: state.characterDesignImage,
       characterNames: state.characterNames,
       generatedComics: state.generatedComics,
+      characterPortraits: state.characterPortraits,
       currentStep: state.currentStep,
     }),
     [
@@ -95,6 +98,7 @@ export const useSessionPersistence = () => {
       state.characterDesignImage,
       state.characterNames,
       state.generatedComics,
+      state.characterPortraits,
       state.currentStep,
     ],
   );
@@ -126,6 +130,8 @@ export const useSessionPersistence = () => {
           characterDesignImage: saved.characterDesignImage ?? null,
           characterNames: saved.characterNames ?? [],
           generatedComics: saved.generatedComics ?? {},
+          characterPortraits: saved.characterPortraits ?? {},
+          portraitGenerating: {},
           pendingComicId: null,
           currentStep: getRestoredStep({
             storyInput: saved.storyInput ?? '',
@@ -144,6 +150,7 @@ export const useSessionPersistence = () => {
             characterDesignImage: saved.characterDesignImage ?? null,
             characterNames: saved.characterNames ?? [],
             generatedComics: saved.generatedComics ?? {},
+            characterPortraits: saved.characterPortraits ?? {},
             currentStep: saved.currentStep ?? 'initial',
           }),
         });
