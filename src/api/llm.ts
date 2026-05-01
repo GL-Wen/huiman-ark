@@ -49,9 +49,12 @@ import { appConfig } from '@/config/app';
 import type { ScriptSegment } from '../store';
 
 const API_ENDPOINTS = {
-  geminiImage: `${appConfig.apiBaseUrl}/v1beta/models/gemini-3-pro-image-preview:generateContent`,
+  imageGenerations: `${appConfig.apiBaseUrl}/v1/images/generations`,
+  imageEdits: `${appConfig.apiBaseUrl}/v1/images/edits`,
   chatCompletions: `${appConfig.apiBaseUrl}/v1/chat/completions`,
 } as const;
+
+const IMAGE_MODEL = 'gpt-image-2';
 
 type AspectRatio = '16:9' | '9:16';
 
@@ -73,7 +76,7 @@ interface GenerateImageOptions {
   referenceLabels?: string[];
 }
 
-interface GeminiPart {
+interface ImagePromptPart {
   inlineData?: {
     mimeType?: string;
     data?: string;
@@ -81,11 +84,10 @@ interface GeminiPart {
   text?: string;
 }
 
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: GeminiPart[];
-    };
+interface ImageApiResponse {
+  data?: Array<{
+    b64_json?: string;
+    url?: string;
   }>;
 }
 
@@ -242,6 +244,18 @@ const convertRemoteImageToDataUrl = async (url: string) => {
   }
 };
 
+const base64ToImageFile = (base64: string, mimeType: string, index: number) => {
+  const binary = window.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  const extension = mimeType.split('/')[1] || 'png';
+  return new File([bytes], `reference-${index + 1}.${extension}`, { type: mimeType });
+};
+
 const extractResponseMessage = (rawText: string) => {
   if (!rawText.trim()) {
     return '';
@@ -255,22 +269,18 @@ const extractResponseMessage = (rawText: string) => {
   }
 };
 
-const extractImageDataUrl = async (data: GeminiResponse) => {
-  const parts = data?.candidates?.[0]?.content?.parts ?? [];
+const extractImageDataUrl = async (data: ImageApiResponse) => {
+  const image = data?.data?.[0];
 
-  for (const part of parts) {
-    if (part?.inlineData?.mimeType && part?.inlineData?.data) {
-      return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-    }
+  if (image?.b64_json) {
+    return `data:image/png;base64,${image.b64_json}`;
   }
 
-  for (const part of parts) {
-    if (typeof part?.text === 'string' && HTTP_URL_PATTERN.test(part.text.trim())) {
-      return convertRemoteImageToDataUrl(part.text.trim());
-    }
+  if (image?.url && HTTP_URL_PATTERN.test(image.url)) {
+    return convertRemoteImageToDataUrl(image.url);
   }
 
-  throw new Error('未从 Gemini 返回中解析到图片');
+  throw new Error('未从生图接口返回中解析到图片');
 };
 
 const buildFriendlyError = async (response: Response) => {
@@ -279,11 +289,13 @@ const buildFriendlyError = async (response: Response) => {
   const message = extractResponseMessage(rawText) || fallbackMessage;
 
   if (response.status === 400) {
-    return `Gemini 生图请求被拒绝：${message}`;
+    return `生图请求被拒绝：${message}`;
   }
 
   return message;
 };
+
+const toImageSize = (aspectRatio: AspectRatio) => (aspectRatio === '9:16' ? '1024x1536' : '1536x1024');
 
 export const extractCharacterNames = (characterText: string) => {
   const sanitized = sanitizeCharacterDesignText(characterText);
@@ -520,6 +532,9 @@ export const pickComicCharacterProfiles = ({
   }));
 };
 
+const buildStyleText = (animeStyle: string, style: string, fallbackDetail: string) =>
+  style?.trim() ? `${animeStyle}；补充风格偏好：${style.trim()}` : `${animeStyle}；${fallbackDetail}`;
+
 export const buildCharacterPortraitPrompt = ({
   profile,
   language,
@@ -534,7 +549,7 @@ export const buildCharacterPortraitPrompt = ({
   hasSheet: boolean;
 }): string => {
   const languageLabel = normalizeLanguageLabel(language);
-  const styleText = style || '国风古韵、水墨质感、精致二次元角色设计';
+  const styleText = buildStyleText(animeStyle, style, '严格贴合所选动漫风格，精致二次元角色设计');
   const truncatedName = profile.name.length > 40 ? profile.name.slice(0, 40) : profile.name;
   const sheetHint = hasSheet
     ? '参考角色设定图中该角色的区域，精确还原其五官轮廓、发型发色、瞳色、服装款式与层次、主配色、体态和年龄感。仅提取该角色一人，不要绘制其他角色。'
@@ -688,10 +703,10 @@ export const buildCharacterDesignImagePrompt = ({
     aspectRatio === '9:16'
       ? '竖版角色设定排版，上下分层展示角色，保证每个角色完整入镜'
       : '横版角色设定排版，左右舒展展示角色，保证每个角色有充足留白';
-  const styleText = style || '国风古韵、水墨质感、精致二次元角色设计';
+  const styleText = buildStyleText(animeStyle, style, '严格贴合所选动漫风格，精致二次元角色设计');
   const referenceText = referenceImagesCount
     ? `我在文本前提供了 ${referenceImagesCount} 张参考图，它们是本次角色设定图的高优先级视觉依据，请尽量贴近这些参考图的画风、线条、配色、材质、光影和完成度，但角色身份和造型仍以角色设定文本为准；若参考图里含有水印、平台标识、logo、签名、页码或边角文字，一律忽略，不要继承到输出图中。`
-    : '没有额外参考图时，请保持统一的国风动漫角色设计风格。';
+    : `没有额外参考图时，请保持统一的所选动漫风格：${animeStyle}。`;
 
   return `请生成一张高质量的动漫角色设定图（Character Design Sheet）。
 
@@ -716,7 +731,7 @@ ${characterText}
 5. 整体风格统一，适合作为后续漫画分镜的标准参考图
 6. 背景简洁，不要喧宾夺主
 7. 服装、配饰、发丝、眼睛都要有细节
-8. 保持国风动漫美术质感，画面精致，人物辨识度高
+8. 严格保持【动漫风格】与【风格偏好】指定的视觉语言，画面精致，人物辨识度高；不要退回到未选择的默认风格
 9. 除角色名称标签外，不要出现任何额外文字、字母、数字、印章、签名、平台标识、水印、logo、页码或角标
 10. 严禁在画面任何位置（尤其是四个角落、底部边缘、右下角）添加角落装饰字样、站点名、伪水印、品牌标志或任何装饰性标记，必须保持画面干净
 
@@ -825,7 +840,7 @@ export const buildComicPagePrompt = ({
   portraitNames: string[];
 }) => {
   const languageLabel = normalizeLanguageLabel(language);
-  const styleText = style || '国风古韵、水墨光影、细腻动漫叙事';
+  const styleText = buildStyleText(animeStyle, style, '严格贴合所选动漫风格，细腻动漫叙事');
   const sanitizedSegmentRaw = sanitizeStorySegmentText(segment.raw);
   const cleanedSegmentRaw = deduplicateDialogues(sanitizedSegmentRaw);
   const referenceTextArray: string[] = [];
@@ -916,11 +931,15 @@ export const generateImage = async (
   try {
     const referenceImages = options.referenceImages ?? [];
     const referenceLabels = options.referenceLabels ?? [];
+    const parsedReferenceImages = await Promise.all(
+      referenceImages.map(async (image) =>
+        parseDataUrl(HTTP_URL_PATTERN.test(image) ? await convertRemoteImageToDataUrl(image) : image),
+      ),
+    );
     const referenceParts = (
       await Promise.all(
-        referenceImages.map(async (image, index) => {
-          const parsed = parseDataUrl(HTTP_URL_PATTERN.test(image) ? await convertRemoteImageToDataUrl(image) : image);
-          const partsForCurrentImage: GeminiPart[] = [];
+        parsedReferenceImages.map(async (parsed, index) => {
+          const partsForCurrentImage: ImagePromptPart[] = [];
 
           if (referenceLabels[index]?.trim()) {
             partsForCurrentImage.push({
@@ -951,30 +970,56 @@ export const generateImage = async (
         : []),
       { text: prompt },
     ];
+    const finalPrompt = parts
+      .map((part) => part.text)
+      .filter((text): text is string => Boolean(text?.trim()))
+      .join('\n\n');
+    const size = toImageSize(options.aspectRatio ?? '16:9');
 
-    const response = await fetch(API_ENDPOINTS.geminiImage, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        Accept: '*/*',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts,
+    const requestInit: RequestInit = referenceImages.length
+      ? (() => {
+          const formData = new FormData();
+          formData.append('model', IMAGE_MODEL);
+          formData.append('prompt', finalPrompt);
+          formData.append('size', size);
+          formData.append('n', '1');
+          formData.append('quality', 'high');
+          formData.append('output_format', 'png');
+          formData.append('input_fidelity', 'high');
+
+          parsedReferenceImages.forEach((parsed, index) => {
+            formData.append('image', base64ToImageFile(parsed.base64, parsed.mimeType, index));
+          });
+
+          return {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              Accept: '*/*',
+            },
+            body: formData,
+            signal: controller.signal,
+          };
+        })()
+      : {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+            Accept: '*/*',
           },
-        ],
-        generationConfig: {
-          responseModalities: ['IMAGE'],
-          imageConfig: {
-            aspectRatio: options.aspectRatio ?? '16:9',
-          },
-        },
-      }),
-      signal: controller.signal,
-    });
+          body: JSON.stringify({
+            model: IMAGE_MODEL,
+            prompt: finalPrompt,
+            size,
+            n: 1,
+            quality: 'high',
+            output_format: 'png',
+          }),
+          signal: controller.signal,
+        };
+
+    const response = await fetch(referenceImages.length ? API_ENDPOINTS.imageEdits : API_ENDPOINTS.imageGenerations, requestInit);
 
     if (!response.ok) {
       throw new Error(await buildFriendlyError(response));
@@ -985,7 +1030,7 @@ export const generateImage = async (
     return extractImageDataUrl(data);
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('Gemini 生图超时，请稍后重试');
+      throw new Error('生图超时，请稍后重试');
     }
 
     throw error;

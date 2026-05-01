@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAppStore, ScriptSegment } from '../../store';
-import { Users, Download, PlaySquare, ChevronDown, RefreshCw } from 'lucide-react';
+import { Users, Download, PlaySquare, RefreshCw } from 'lucide-react';
 import { ImageLightbox, type ImageLightboxItem } from '../common/ImageLightbox';
 import {
   buildComicPagePrompt,
   buildComicReferenceInstruction,
   generateImage,
-  generateCharacterPortraits,
+  generateCharacterAssets,
   parseCharacterProfiles,
   sanitizeCharacterDesignText,
   pickComicCharacterProfiles,
@@ -34,8 +34,13 @@ export const CharacterBoard: React.FC = () => {
     currentStep,
     setCurrentStep,
     generatedScript,
+    model,
     characterDesign,
+    setCharacterDesign,
+    characterDesignImage,
+    setCharacterDesignImage,
     characterNames,
+    setCharacterNames,
     generatedComics,
     setGeneratedComic,
     pendingComicId,
@@ -48,21 +53,23 @@ export const CharacterBoard: React.FC = () => {
     style,
     referenceImages,
     characterPortraits,
-    setCharacterPortrait,
+    clearCharacterPortraits,
   } = useAppStore();
   const [generatingCuts, setGeneratingCuts] = useState<Record<string, boolean>>({});
   const [generationErrors, setGenerationErrors] = useState<Record<string, string>>({});
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [isRegeneratingCharacterSheet, setIsRegeneratingCharacterSheet] = useState(false);
   const [lightboxState, setLightboxState] = useState<{ items: ImageLightboxItem[]; index: number } | null>(null);
-  const [expandedProfileCards, setExpandedProfileCards] = useState<Record<string, boolean>>({});
-  const [regeneratingPortraitCards, setRegeneratingPortraitCards] = useState<Record<string, boolean>>({});
   const autoRunRef = useRef<string | null>(null);
   const displayCharacterDesign = useMemo(
     () => (characterDesign ? sanitizeCharacterDesignText(characterDesign) : ''),
     [characterDesign],
   );
   const characterProfiles = useMemo(() => parseCharacterProfiles(displayCharacterDesign), [displayCharacterDesign]);
-  const hasPortraitReferences = useMemo(() => Object.keys(characterPortraits).length > 0, [characterPortraits]);
+  const hasCharacterReference = useMemo(
+    () => Boolean(characterDesignImage) || Object.keys(characterPortraits).length > 0,
+    [characterDesignImage, characterPortraits],
+  );
 
   const completedCount = useMemo(
     () => generatedScript.filter((script) => Boolean(generatedComics[script.id])).length,
@@ -70,27 +77,20 @@ export const CharacterBoard: React.FC = () => {
   );
   const isAllCompleted = generatedScript.length > 0 && completedCount >= generatedScript.length;
   const getDefaultTitle = useCallback((index: number) => t('defaultSegmentTitle', { index }), [t]);
-  const portraitPreviewItems = useMemo(
+  const characterSheetPreviewItems = useMemo(
     () =>
-      characterProfiles.flatMap((profile, index) => {
-        const portraitKey = `${profile.name}#${index}`;
-        const portrait = characterPortraits[portraitKey];
-
-        if (!portrait) {
-          return [];
-        }
-
-        return [
-          {
-            src: portrait,
-            alt: profile.name,
-            title: profile.name,
-            subtitle: t('referenceTitle'),
-            downloadFilename: `${profile.name}-portrait.png`,
-          },
-        ];
-      }),
-    [characterPortraits, characterProfiles, t],
+      characterDesignImage
+        ? [
+            {
+              src: characterDesignImage,
+              alt: t('referenceTitle'),
+              title: t('referenceTitle'),
+              subtitle: characterNames.length ? characterNames.join(' / ') : undefined,
+              downloadFilename: 'character-design-sheet.png',
+            },
+          ]
+        : [],
+    [characterDesignImage, characterNames, t],
   );
   const generatedComicPreviewItems = useMemo(
     () =>
@@ -151,6 +151,19 @@ export const CharacterBoard: React.FC = () => {
         }
       }
 
+      if (characterDesignImage) {
+        const userRefImages = referenceImages.slice(0, MAX_REF - 1);
+        return {
+          mode: 'sheet',
+          images: [characterDesignImage, ...userRefImages],
+          labels: [
+            '角色设定总图：请按图中每个角色对应区域保持后续漫画人物一致',
+            ...Array(userRefImages.length).fill(''),
+          ],
+          portraitNames: [],
+        };
+      }
+
       if (matchedPortraitKeys.length > 0) {
         const portraitImages = matchedPortraitKeys.map((key) => characterPortraits[key]);
         const portraitDisplayNames = matchedPortraitKeys.map((key) => {
@@ -176,7 +189,7 @@ export const CharacterBoard: React.FC = () => {
 
       return { mode: 'none', images: [], labels: [], portraitNames: [] };
     },
-    [characterDesign, characterPortraits, characterNames, referenceImages],
+    [characterDesign, characterDesignImage, characterPortraits, characterNames, referenceImages],
   );
 
   const resolveStepAfterSingle = useCallback(
@@ -304,52 +317,63 @@ export const CharacterBoard: React.FC = () => {
     });
   }, [generatedComics, generatedScript, t]);
 
-  const handleRegenerateSinglePortrait = useCallback(
-    async (profileName: string, profileIndex: number) => {
+  const handleRegenerateCharacterSheet = useCallback(
+    async () => {
       if (!apiKey) {
         openApiSettings();
         return;
       }
 
-      const profiles = parseCharacterProfiles(displayCharacterDesign);
-      const profile = profiles[profileIndex];
-      if (!profile || profile.name !== profileName) {
+      if (!generatedScript.length) {
         return;
       }
 
-      const portraitKey = `${profile.name}#${profileIndex}`;
-      setRegeneratingPortraitCards((prev) => ({ ...prev, [portraitKey]: true }));
+      setIsRegeneratingCharacterSheet(true);
 
       try {
         const selectedAnimeStyle = getAnimeStylePrompt(animeStyle, customAnimeStyle);
-        const { portraits } = await generateCharacterPortraits(apiKey, {
-          characterText: displayCharacterDesign,
+        const { characterText, characterNames: nextCharacterNames, characterImage } = await generateCharacterAssets({
+          apiKey,
+          model,
+          storyInput,
+          generatedScript,
           language,
+          aspectRatio: ratio,
           animeStyle: selectedAnimeStyle,
           style,
-          sheetImage: null,
           referenceImages,
-          targetProfiles: [{ profile, originalIndex: profileIndex }],
+          existingCharacterText: displayCharacterDesign || characterDesign,
         });
 
-        if (portraits[portraitKey]) {
-          setCharacterPortrait(portraitKey, portraits[portraitKey]);
-        }
+        setCharacterDesign(characterText);
+        setCharacterDesignImage(characterImage);
+        setCharacterNames(nextCharacterNames);
+        clearCharacterPortraits();
+        setPendingComicId(null);
       } catch (error) {
         alert(error instanceof Error ? error.message : t('alerts.characterDesignFailed'));
       } finally {
-        setRegeneratingPortraitCards((prev) => ({ ...prev, [portraitKey]: false }));
+        setIsRegeneratingCharacterSheet(false);
       }
     },
     [
       apiKey,
       animeStyle,
+      characterDesign,
+      clearCharacterPortraits,
       customAnimeStyle,
       displayCharacterDesign,
+      generatedScript,
       language,
+      model,
       openApiSettings,
+      ratio,
       referenceImages,
-      setCharacterPortrait,
+      setCharacterDesign,
+      setCharacterDesignImage,
+      setCharacterNames,
+      setPendingComicId,
+      storyInput,
       style,
       t,
     ],
@@ -437,7 +461,7 @@ export const CharacterBoard: React.FC = () => {
               : t('progressDone', { completed: completedCount, total: generatedScript.length })}
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            {hasPortraitReferences ? t('withCharacterReference') : t('withoutCharacterReference')}
+            {hasCharacterReference ? t('withCharacterReference') : t('withoutCharacterReference')}
           </p>
         </div>
 
@@ -475,124 +499,94 @@ export const CharacterBoard: React.FC = () => {
           </div>
 
           {characterProfiles.length > 0 ? (
-            <div className="">
-              {characterProfiles.map((profile, index) => {
-                const profileCardKey = `${profile.name}-${index}`;
-                const portraitKey = `${profile.name}#${index}`;
-                const portrait = characterPortraits[portraitKey];
-                const summary = profile.appearance || profile.outfit || profile.personality || t('noDescription');
-                const isExpanded = Boolean(expandedProfileCards[profileCardKey]);
-                const isRegeneratingPortrait = Boolean(regeneratingPortraitCards[portraitKey]);
-                const detailSections = [
-                  { label: t('personality'), value: profile.personality },
-                  { label: t('role'), value: profile.role },
-                  { label: t('staging'), value: profile.staging },
-                  { label: t('outfit'), value: profile.outfit },
-                ].filter((section) => section.value);
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(280px,420px)_minmax(0,1fr)] gap-0">
+              <div className="bg-white p-4 lg:border-r border-gray-200">
+                <div className="mb-3">
+                  <h3 className="text-sm font-bold text-slate-800">{t('referenceTitle')}</h3>
+                </div>
+                {characterDesignImage ? (
+                  <>
+                    <div className="w-full rounded-lg bg-gray-100 border border-gray-200 overflow-hidden">
+                      <img
+                        src={characterDesignImage}
+                        alt={t('referenceTitle')}
+                        className="w-full cursor-zoom-in object-contain transition duration-300 hover:scale-[1.02]"
+                        onClick={() => openLightbox(characterSheetPreviewItems, 0)}
+                      />
+                    </div>
+                    <p className="mt-3 text-[12px] leading-6 text-slate-600">
+                      {characterNames.length ? characterNames.join(' / ') : t('noCharacters')}
+                    </p>
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={handleRegenerateCharacterSheet}
+                        disabled={isRegeneratingCharacterSheet}
+                        className={`h-10 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${
+                          isRegeneratingCharacterSheet
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <RefreshCw
+                          className={`w-4 h-4 mr-1.5 ${isRegeneratingCharacterSheet ? 'animate-spin' : ''}`}
+                        />
+                        {isRegeneratingCharacterSheet ? t('generating') : t('regenerate')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadImage(characterDesignImage, 'character-design-sheet.png')}
+                        className="h-10 rounded-lg text-sm font-medium flex items-center justify-center bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        <Download className="w-4 h-4 mr-1.5" />
+                        {t('download')}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="min-h-64 rounded-lg bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center text-[12px] text-gray-400">
+                    {t('noCharacters')}
+                  </div>
+                )}
+              </div>
 
-                return (
-                  <div key={profileCardKey} className="overflow-hidden border-gray-200 bg-white shadow-sm">
-                    <div className="p-4 flex flex-col sm:flex-row gap-3">
-                      <div className="w-24 h-24 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                        {portrait ? (
-                          <img
-                            src={portrait}
-                            alt={profile.name}
-                            className="h-full w-full cursor-zoom-in object-cover transition duration-300 hover:scale-105"
-                            onClick={() => {
-                              const previewIndex = portraitPreviewItems.findIndex((item) => item.src === portrait);
-                              openLightbox(portraitPreviewItems, previewIndex >= 0 ? previewIndex : 0);
-                            }}
-                          />
-                        ) : (
-                          <span className="text-2xl font-bold text-gray-400">{profile.name.slice(0, 1)}</span>
-                        )}
-                      </div>
+              <div className="min-h-0 bg-white">
+                <div className="max-h-[560px] overflow-y-auto divide-y divide-gray-100">
+                  {characterProfiles.map((profile, index) => {
+                    const profileCardKey = `${profile.name}-${index}`;
+                    const detailSections = [
+                      { label: t('outfit'), value: profile.outfit },
+                      { label: t('personality'), value: profile.personality },
+                      { label: t('role'), value: profile.role },
+                      { label: t('staging'), value: profile.staging },
+                    ].filter((section) => section.value);
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <h4 className="text-[12px] leading-6 font-bold text-slate-800">{profile.name}</h4>
-                          <div className="flex items-center gap-2">
-                            {portrait && (
-                              <button
-                                type="button"
-                                onClick={() => downloadImage(portrait, `${profile.name}-portrait.png`)}
-                                className="px-2.5 py-1 rounded-md text-[12px] font-medium flex items-center bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors"
-                              >
-                                <Download className="w-3.5 h-3.5 mr-1" />
-                                {t('download')}
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleRegenerateSinglePortrait(profile.name, index)}
-                              disabled={isRegeneratingPortrait}
-                              className={`px-2.5 py-1 rounded-md text-[12px] font-medium flex items-center transition-colors ${
-                                isRegeneratingPortrait
-                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
-                              }`}
-                            >
-                              {isRegeneratingPortrait ? (
-                                <>
-                                  <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" />
-                                  {t('generating')}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                                  {portrait ? t('regeneratePortrait') : t('generatePortrait')}
-                                </>
-                              )}
-                            </button>
+                    return (
+                      <div key={profileCardKey} className="bg-white p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm leading-6 font-bold text-slate-800">{profile.name}</h4>
+                            <p className="mt-1 text-[12px] leading-6 text-slate-700">
+                              {profile.appearance || t('noDescription')}
+                            </p>
                           </div>
                         </div>
-                        <p className="mt-1 text-[12px] leading-6 text-slate-600">{summary}</p>
-                      </div>
-                    </div>
 
-                    <div
-                      className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out ${
-                        isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-                      }`}
-                    >
-                      <div className="min-h-0">
                         {detailSections.length > 0 ? (
-                          detailSections.map((section) => (
-                            <div
-                              key={`${profile.name}-${section.label}`}
-                              className="border-t border-gray-100 px-4 py-3"
-                            >
-                              <p className="text-[12px] font-semibold text-gray-400 mb-1">{section.label}</p>
-                              <p className="text-[12px] leading-6 text-slate-700">{section.value}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="border-t border-gray-100 px-4 py-3">
-                            <p className="text-[12px] leading-6 text-slate-700">{t('noDescription')}</p>
+                          <div className="mt-4 space-y-3">
+                            {detailSections.map((section) => (
+                              <section key={`${profile.name}-${section.label}`}>
+                                <p className="text-[12px] font-semibold text-gray-400 mb-1">{section.label}</p>
+                                <p className="text-[12px] leading-6 text-slate-700">{section.value}</p>
+                              </section>
+                            ))}
                           </div>
-                        )}
+                        ) : null}
                       </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedProfileCards((prev) => ({
-                          ...prev,
-                          [profileCardKey]: !prev[profileCardKey],
-                        }))
-                      }
-                      className="w-full border-t border-gray-100 px-4 py-2 text-[12px] text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <span>{isExpanded ? t('collapseDetails') : t('expandDetails')}</span>
-                      <ChevronDown
-                        className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="text-[12px] text-slate-700 whitespace-pre-wrap leading-6 tracking-[0.01em]">

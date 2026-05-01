@@ -72,7 +72,7 @@ export const StoryScriptBoard: React.FC = () => {
 
     try {
       const selectedAnimeStyle = getAnimeStylePrompt(animeStyle, customAnimeStyle);
-      const { characterText, characterNames } = await generateCharacterAssets({
+      const { characterText, characterNames, characterImage } = await generateCharacterAssets({
         apiKey,
         model,
         storyInput,
@@ -82,10 +82,10 @@ export const StoryScriptBoard: React.FC = () => {
         animeStyle: selectedAnimeStyle,
         style,
         referenceImages,
-        skipImageGeneration: true,
       });
 
       setCharacterDesign(characterText);
+      setCharacterDesignImage(characterImage);
       setCharacterNames(characterNames);
       setPendingComicId(null);
 
