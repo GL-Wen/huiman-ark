@@ -4,7 +4,6 @@ import React from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { Footer } from '@/components/layout/Footer';
 import { EmptyCanvas } from '@/components/features/EmptyCanvas';
 import { StoryScriptBoard } from '@/components/features/StoryScriptBoard';
 import { CharacterBoard } from '@/components/features/CharacterBoard';
@@ -130,9 +129,9 @@ export default function App() {
 
           {currentStep === 'generating_characters' && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
-              <div className="w-12 h-12 border-4 border-gray-200 border-t-pink-400 rounded-full animate-spin mb-4"></div>
+              <div className="w-12 h-12 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
               <p className="text-gray-800 font-medium flex items-center">
-                <span className="text-pink-400 mr-2">🌸</span>
+                <span className="text-indigo-400 mr-2">✦</span>
                 {tPage('generating_characters')}
               </p>
             </div>
@@ -143,7 +142,6 @@ export default function App() {
           )}
         </main>
       </div>
-      <Footer />
     </div>
   );
 }

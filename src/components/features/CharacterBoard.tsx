@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAppStore, ScriptSegment } from '../../store';
-import { Users, Download, PlaySquare, RefreshCw } from 'lucide-react';
+import { Users, Download, PlaySquare, RefreshCw, ChevronLeft } from 'lucide-react';
 import { ImageLightbox, type ImageLightboxItem } from '../common/ImageLightbox';
 import {
   buildComicPagePrompt,
@@ -10,7 +10,6 @@ import {
   generateCharacterAssets,
   parseCharacterProfiles,
   sanitizeCharacterDesignText,
-  pickComicCharacterProfiles,
   type CharacterReferenceMode,
 } from '../../api/llm';
 import { getAnimeStylePrompt } from '../../lib/animeStyles';
@@ -52,12 +51,11 @@ export const CharacterBoard: React.FC = () => {
     customAnimeStyle,
     style,
     referenceImages,
-    characterPortraits,
-    clearCharacterPortraits,
   } = useAppStore();
   const [generatingCuts, setGeneratingCuts] = useState<Record<string, boolean>>({});
   const [generationErrors, setGenerationErrors] = useState<Record<string, string>>({});
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [generatingAllIndex, setGeneratingAllIndex] = useState(-1);
   const [isRegeneratingCharacterSheet, setIsRegeneratingCharacterSheet] = useState(false);
   const [lightboxState, setLightboxState] = useState<{ items: ImageLightboxItem[]; index: number } | null>(null);
   const autoRunRef = useRef<string | null>(null);
@@ -67,8 +65,8 @@ export const CharacterBoard: React.FC = () => {
   );
   const characterProfiles = useMemo(() => parseCharacterProfiles(displayCharacterDesign), [displayCharacterDesign]);
   const hasCharacterReference = useMemo(
-    () => Boolean(characterDesignImage) || Object.keys(characterPortraits).length > 0,
-    [characterDesignImage, characterPortraits],
+    () => Boolean(characterDesignImage),
+    [characterDesignImage],
   );
 
   const completedCount = useMemo(
@@ -122,75 +120,33 @@ export const CharacterBoard: React.FC = () => {
     setLightboxState({ items, index });
   }, []);
 
-  const buildReferenceImages = useCallback(
-    (
-      script: ScriptSegment,
-    ): {
-      mode: CharacterReferenceMode;
-      images: string[];
-      labels: string[];
-      portraitNames: string[];
-    } => {
-      const matchedProfiles = pickComicCharacterProfiles({
-        characterDesign,
-        cleanedSegmentRaw: script.raw.replace(/^\s*\[[^\]]+\]\s*\n?/, '').trim(),
-        scene: script.scene,
-        plot: script.plot,
-        desc: script.desc,
-        characterNames,
-      });
+  const buildReferenceImages = useCallback((): {
+    mode: CharacterReferenceMode;
+    images: string[];
+    labels: string[];
+    portraitNames: string[];
+  } => {
+    const MAX_REF = 6;
 
-      const MAX_REF = 6;
-      const slicedMatches = matchedProfiles.slice(0, MAX_REF);
-      const matchedPortraitKeys: string[] = [];
-
-      for (const { profile, originalIndex } of slicedMatches) {
-        const key = `${profile.name}#${originalIndex}`;
-        if (characterPortraits[key]) {
-          matchedPortraitKeys.push(key);
-        }
-      }
-
-      if (characterDesignImage) {
-        const userRefImages = referenceImages.slice(0, MAX_REF - 1);
-        return {
-          mode: 'sheet',
-          images: [characterDesignImage, ...userRefImages],
-          labels: [
-            '角色设定总图：请按图中每个角色对应区域保持后续漫画人物一致',
-            ...Array(userRefImages.length).fill(''),
-          ],
-          portraitNames: [],
-        };
-      }
-
-      if (matchedPortraitKeys.length > 0) {
-        const portraitImages = matchedPortraitKeys.map((key) => characterPortraits[key]);
-        const portraitDisplayNames = matchedPortraitKeys.map((key) => {
-          const [name] = key.split('#');
-          return name;
-        });
-        const remainingSlots = MAX_REF - portraitImages.length;
-        const userRefImages = referenceImages.slice(0, remainingSlots);
-        const images = [...portraitImages, ...userRefImages];
-        const labels = [
-          ...matchedPortraitKeys.map((key) => {
-            const [name] = key.split('#');
-            return `角色参考：${name}`;
-          }),
+    if (characterDesignImage) {
+      const userRefImages = referenceImages.slice(0, MAX_REF - 1);
+      return {
+        mode: 'sheet',
+        images: [characterDesignImage, ...userRefImages],
+        labels: [
+          '【角色外观唯一标准】角色设定总图：图中每个角色的脸型、五官、发型发色、服装配色是本次漫画所有分格的硬约束，必须严格复刻，不得偏移或改造',
           ...Array(userRefImages.length).fill(''),
-        ];
-        return { mode: 'portraits', images, labels, portraitNames: portraitDisplayNames };
-      }
+        ],
+        portraitNames: [],
+      };
+    }
 
-      if (referenceImages.length > 0) {
-        return { mode: 'user', images: referenceImages, labels: [], portraitNames: [] };
-      }
+    if (referenceImages.length > 0) {
+      return { mode: 'user', images: referenceImages, labels: [], portraitNames: [] };
+    }
 
-      return { mode: 'none', images: [], labels: [], portraitNames: [] };
-    },
-    [characterDesign, characterDesignImage, characterPortraits, characterNames, referenceImages],
-  );
+    return { mode: 'none', images: [], labels: [], portraitNames: [] };
+  }, [characterDesignImage, referenceImages]);
 
   const resolveStepAfterSingle = useCallback(
     (scriptId: string) => {
@@ -225,7 +181,7 @@ export const CharacterBoard: React.FC = () => {
       });
 
       try {
-        const { mode, images, labels, portraitNames } = buildReferenceImages(script);
+        const { mode, images, labels, portraitNames } = buildReferenceImages();
 
         const prompt = buildComicPagePrompt({
           segment: script,
@@ -348,7 +304,6 @@ export const CharacterBoard: React.FC = () => {
         setCharacterDesign(characterText);
         setCharacterDesignImage(characterImage);
         setCharacterNames(nextCharacterNames);
-        clearCharacterPortraits();
         setPendingComicId(null);
       } catch (error) {
         alert(error instanceof Error ? error.message : t('alerts.characterDesignFailed'));
@@ -360,7 +315,6 @@ export const CharacterBoard: React.FC = () => {
       apiKey,
       animeStyle,
       characterDesign,
-      clearCharacterPortraits,
       customAnimeStyle,
       displayCharacterDesign,
       generatedScript,
@@ -395,9 +349,10 @@ export const CharacterBoard: React.FC = () => {
 
     let hasError = false;
 
-    for (const script of generatedScript) {
+    for (let i = 0; i < generatedScript.length; i++) {
+      setGeneratingAllIndex(i);
       try {
-        await handleGenerateComic(script, {
+        await handleGenerateComic(generatedScript[i], {
           silent: true,
           manageStep: false,
         });
@@ -406,6 +361,7 @@ export const CharacterBoard: React.FC = () => {
       }
     }
 
+    setGeneratingAllIndex(-1);
     setIsGeneratingAll(false);
     setCurrentStep(hasError ? 'characters_done' : 'done');
 
@@ -451,28 +407,36 @@ export const CharacterBoard: React.FC = () => {
   ]);
 
   return (
-    <div className="flex flex-col h-full bg-gray-50/50 p-6 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="text-sm font-medium text-gray-800 flex items-center">
-            <span className="mr-2">🎨</span>
-            {currentStep === 'generating_comics' && !isAllCompleted
-              ? t('progressGenerating', { completed: completedCount, total: generatedScript.length })
-              : t('progressDone', { completed: completedCount, total: generatedScript.length })}
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
+    <div className="flex flex-col h-full bg-white">
+      <div className="shrink-0 border-b border-gray-100 px-5 py-3 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <span className="text-sm font-medium text-gray-700">
+            {isGeneratingAll && generatingAllIndex >= 0
+              ? t('progressGeneratingCurrent', { current: generatingAllIndex + 1, total: generatedScript.length })
+              : currentStep === 'generating_comics' && !isAllCompleted
+                ? t('progressGenerating', { completed: completedCount, total: generatedScript.length })
+                : t('progressDone', { completed: completedCount, total: generatedScript.length })}
+          </span>
+          <span className="ml-2 text-xs text-gray-400">
             {hasCharacterReference ? t('withCharacterReference') : t('withoutCharacterReference')}
-          </p>
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setCurrentStep('story_done')}
+            className="px-2.5 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors flex items-center"
+          >
+            <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+            {t('backToScript')}
+          </button>
           <button
             onClick={handleExportAll}
             disabled={completedCount === 0}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               completedCount === 0
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-600 border border-gray-200 hover:bg-gray-50'
             }`}
           >
             {t('exportAll')}
@@ -480,8 +444,8 @@ export const CharacterBoard: React.FC = () => {
           <button
             onClick={handleGenerateAll}
             disabled={isGeneratingAll}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isGeneratingAll ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              isGeneratingAll ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'
             }`}
           >
             {isGeneratingAll ? t('generatingAll') : t('generateAll')}
@@ -489,13 +453,12 @@ export const CharacterBoard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 mb-6">
+      <div className="flex-1 overflow-y-auto p-5 bg-gray-50/40 space-y-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="bg-gray-50/80 p-4 border-b border-gray-100">
-            <h2 className="text-base font-bold text-gray-800 flex items-center">
-              <Users className="w-5 h-5 text-gray-700 mr-2" />
-              {t('referenceTitle')}
-            </h2>
+          <div className="bg-gray-50/80 px-4 py-3 border-b border-gray-100 flex items-center">
+            <Users className="w-4 h-4 text-gray-400 mr-2" />
+            <h2 className="text-sm font-semibold text-gray-700">{t('referenceTitle')}</h2>
           </div>
 
           {characterProfiles.length > 0 ? (
@@ -563,25 +526,20 @@ export const CharacterBoard: React.FC = () => {
 
                     return (
                       <div key={profileCardKey} className="bg-white p-4">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-sm leading-6 font-bold text-slate-800">{profile.name}</h4>
-                            <p className="mt-1 text-[12px] leading-6 text-slate-700">
-                              {profile.appearance || t('noDescription')}
-                            </p>
-                          </div>
-                        </div>
-
-                        {detailSections.length > 0 ? (
-                          <div className="mt-4 space-y-3">
+                        <h4 className="text-sm font-semibold text-gray-800 mb-1">{profile.name}</h4>
+                        <p className="text-[12px] leading-5 text-gray-600">
+                          {profile.appearance || t('noDescription')}
+                        </p>
+                        {detailSections.length > 0 && (
+                          <div className="mt-3 space-y-2">
                             {detailSections.map((section) => (
                               <section key={`${profile.name}-${section.label}`}>
-                                <p className="text-[12px] font-semibold text-gray-400 mb-1">{section.label}</p>
-                                <p className="text-[12px] leading-6 text-slate-700">{section.value}</p>
+                                <p className="text-[11px] font-medium text-gray-400 mb-0.5">{section.label}</p>
+                                <p className="text-[12px] leading-5 text-gray-600">{section.value}</p>
                               </section>
                             ))}
                           </div>
-                        ) : null}
+                        )}
                       </div>
                     );
                   })}
@@ -589,25 +547,30 @@ export const CharacterBoard: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="text-[12px] text-slate-700 whitespace-pre-wrap leading-6 tracking-[0.01em]">
+            <div className="p-4 text-[12px] text-slate-700 whitespace-pre-wrap leading-6 tracking-[0.01em]">
               {displayCharacterDesign || t('noCharacterText')}
             </div>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
+      <div className={`grid gap-3 pb-4 ${ratio === '9:16' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
         {generatedScript.map((script, index) => {
           const generatedImage = generatedComics[script.id];
           const isGenerating = Boolean(generatingCuts[script.id]);
           const errorMessage = generationErrors[script.id];
+          const isCurrentlyGenerating = isGeneratingAll && generatingAllIndex === index;
 
           return (
             <div
               key={script.id}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col shadow-sm"
+              className={`bg-white border rounded-md overflow-hidden flex flex-col transition-shadow ${
+                isCurrentlyGenerating
+                  ? 'border-indigo-300 ring-2 ring-indigo-100'
+                  : 'border-gray-200'
+              }`}
             >
-              <div className="w-full aspect-video bg-gray-100 border-b border-gray-100 overflow-hidden flex items-center justify-center">
+              <div className={`w-full ${ratio === '9:16' ? 'aspect-[9/16]' : 'aspect-video'} bg-gray-100 border-b border-gray-100 overflow-hidden flex items-center justify-center`}>
                 {generatedImage ? (
                   <img
                     src={generatedImage}
@@ -620,39 +583,39 @@ export const CharacterBoard: React.FC = () => {
                   />
                 ) : errorMessage ? (
                   <div className="w-full h-full bg-red-50 text-red-500 flex flex-col items-center justify-center text-center px-5">
-                    <p className="text-base font-semibold">{t('generationFailed')}</p>
-                    <p className="text-sm leading-6 mt-2 max-w-[260px]">{errorMessage}</p>
+                    <p className="text-sm font-semibold">{t('generationFailed')}</p>
+                    <p className="text-xs leading-5 mt-1 max-w-[240px] text-red-400">{errorMessage}</p>
                   </div>
                 ) : (
                   <div className="text-center px-4">
-                    <p className="text-sm text-gray-500">{t('notGeneratedYet')}</p>
-                    <p className="text-xs text-gray-400 mt-1">{t('notGeneratedHint')}</p>
+                    <p className="text-xs text-gray-400">{t('notGeneratedYet')}</p>
+                    <p className="text-[11px] text-gray-300 mt-1">{t('notGeneratedHint')}</p>
                   </div>
                 )}
               </div>
 
-              <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                <span className="text-xs font-bold bg-gray-100 px-2 py-1 rounded text-gray-700">
+              <div className="px-3 py-2 border-b border-gray-100 flex justify-between items-center">
+                <span className="text-xs font-semibold text-gray-700">
                   {script.title || getDefaultTitle(index + 1)}
                 </span>
-                <span className="text-xs text-gray-400 font-medium">{script.cut}</span>
+                <span className="text-[10px] text-gray-400 font-mono">{script.cut}</span>
               </div>
 
-              <div className="p-4 flex-1 overflow-y-auto min-h-[200px] max-h-[300px]">
-                <div className="text-[14px] text-slate-700 whitespace-pre-wrap leading-7 tracking-[0.01em] pb-4">
+              <div className="p-3 flex-1 overflow-y-auto max-h-[240px]">
+                <div className="text-[13px] text-gray-700 whitespace-pre-wrap leading-6 tracking-[0.01em]">
                   {getSegmentDisplayContent(script.raw)}
                 </div>
               </div>
 
-              <div className="p-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-2">
+              <div className="px-3 py-2 border-t border-gray-100 flex items-center justify-between gap-2">
                 {generatedImage ? (
                   <button
                     onClick={() =>
                       downloadImage(generatedImage, `${script.cut.toLowerCase().replace(/\s+/g, '-')}.png`)
                     }
-                    className="px-3 py-1.5 rounded-md text-xs font-medium flex items-center bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="text-[11px] font-medium flex items-center text-gray-500 hover:text-gray-800 transition-colors"
                   >
-                    <Download className="w-3 h-3 mr-1.5" />
+                    <Download className="w-3 h-3 mr-1" />
                     {t('download')}
                   </button>
                 ) : (
@@ -662,20 +625,20 @@ export const CharacterBoard: React.FC = () => {
                 <button
                   onClick={() => handleGenerateComic(script, { manageStep: false })}
                   disabled={isGenerating}
-                  className={`px-4 py-1.5 rounded-md text-xs font-medium flex items-center transition-colors ${
+                  className={`px-3 py-1 rounded text-[11px] font-medium flex items-center transition-colors ${
                     isGenerating
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-black text-white hover:bg-gray-800'
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-indigo-600 hover:bg-indigo-50'
                   }`}
                 >
                   {isGenerating ? (
                     <>
-                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5" />
+                      <div className="w-3 h-3 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mr-1" />
                       {t('generating')}
                     </>
                   ) : (
                     <>
-                      <PlaySquare className="w-3 h-3 mr-1.5 text-green-400" />
+                      <PlaySquare className="w-3 h-3 mr-1" />
                       {generatedImage ? t('regenerate') : t('generateComic')}
                     </>
                   )}
@@ -684,6 +647,7 @@ export const CharacterBoard: React.FC = () => {
             </div>
           );
         })}
+      </div>
       </div>
 
       <ImageLightbox

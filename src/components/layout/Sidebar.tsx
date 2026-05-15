@@ -2,8 +2,9 @@ import React from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type AppLocale } from '@/i18n/routing';
 import { useAppStore, type ScriptSegment } from '../../store';
-import { Sparkles, ChevronDown, ChevronUp, Image as ImageIcon, Rows3, Trash2 } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp, Image as ImageIcon, Rows3, Trash2, Cpu, Globe, Palette, Monitor, Grid2x2, Pencil } from 'lucide-react';
 import {
+  buildStoryOutputInstruction,
   extractStorySegmentTitle,
   generateContent,
   isInvalidStoryMetaBlock,
@@ -177,7 +178,6 @@ export const Sidebar: React.FC = () => {
     setCharacterDesign,
     setCharacterDesignImage,
     setCharacterNames,
-    clearCharacterPortraits,
     setGeneratedComics,
     setPendingComicId,
     generatedScript,
@@ -320,7 +320,6 @@ export const Sidebar: React.FC = () => {
     setCharacterDesign(null);
     setCharacterDesignImage(null);
     setCharacterNames([]);
-    clearCharacterPortraits();
     setGeneratedComics({});
     setPendingComicId(null);
 
@@ -328,10 +327,10 @@ export const Sidebar: React.FC = () => {
       const prompt = `
       用户的要求和说明：
       ${storyInput}
-      
+
       【动漫风格】${getAnimeStylePrompt(animeStyle, customAnimeStyle)}
       ${style ? `【风格偏好】${style}` : ''}
-      【输出语言】请使用${selectedOutputLanguage}编写所有段落、对话、旁白和音效。
+      ${buildStoryOutputInstruction(selectedOutputLanguage)}
       【漫画比例】后续漫画页面和角色设定图请使用 ${ratio} 比例生成。
       ${paragraphPrompt}
       【画面格子数】请控制每段生成的漫画包含的格子数在 ${normalizedPanelsPerParagraph} 个左右。
@@ -373,10 +372,10 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className="w-[360px] flex-shrink-0 border-r border-gray-200 bg-white h-full flex flex-col overflow-y-auto">
-      <div className="p-5 space-y-6">
-        <div className="space-y-2">
-          <label className="flex items-center text-sm font-bold text-gray-800">
-            <span className="text-gray-400 mr-2">💬</span>
+      <div className="p-4 space-y-4">
+        <div className="space-y-1.5">
+          <label className="flex items-center text-xs font-medium text-gray-500">
+            <Pencil className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
             {t('storyDescription')}
           </label>
           <textarea
@@ -391,7 +390,7 @@ export const Sidebar: React.FC = () => {
             }}
             placeholder={t('storyPlaceholder')}
             style={{ minHeight: '8rem', maxHeight: '20rem' }}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm resize-none overflow-y-auto"
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 text-sm resize-none overflow-y-auto"
           />
         </div>
 
@@ -401,48 +400,43 @@ export const Sidebar: React.FC = () => {
           className={`w-full py-3 rounded-lg font-bold flex items-center justify-center transition-colors ${
             isGeneratingStory
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-[#1a1b2e] text-white hover:bg-black'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-orange-400 mr-2" />
+          <Sparkles className="w-4 h-4 text-indigo-300 mr-2" />
           {isGeneratingStory ? t('generatingStory') : t('generateStory')}
         </button>
 
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 rounded-md overflow-hidden">
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="w-full bg-gray-50 px-4 py-3 flex justify-between items-center text-sm text-gray-600 font-medium"
+            className="w-full bg-gray-50 px-3 py-2.5 flex justify-between items-center text-xs text-gray-600 font-medium"
           >
-            <div className="flex items-center">
-              <span className="text-purple-400 mr-2">⚙️</span>
-              {t('advancedOptions')}
-            </div>
-            {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <span>{t('advancedOptions')}</span>
+            {showAdvanced ? <ChevronUp className="w-3.5 h-3.5 text-gray-400" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400" />}
           </button>
 
           {showAdvanced && (
             <div className="p-4 space-y-4 border-t border-gray-200">
               <div className="space-y-1">
-                <label className="flex items-center text-sm font-medium text-gray-700">
-                  <span className="w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded mr-2" />
-                  {t('modelLabel')}
+                <label className="flex items-center text-xs font-medium text-gray-500">
+                  <Cpu className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                  {t('textModelLabel')}
                 </label>
                 <select
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none"
                 >
-                  <option value="gpt-5.4">gpt-5.4</option>
-                  <option value="gpt-5.4-mini">gpt-5.4-mini</option>
-                  <option value="gpt-5.2">gpt-5.2</option>
+                  <option value="claude-opus-4-7">claude-opus-4-7</option>
+                  <option value="gemini-2.5-pro">gemini-2.5-pro</option>
                   <option value="gpt-4o">gpt-4o</option>
-                  <option value="gemini-3-pro">gemini-3-pro</option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="flex items-center text-sm font-medium text-gray-700">
-                  <span className="text-blue-400 mr-2">🌐</span>
+                <label className="flex items-center text-xs font-medium text-gray-500">
+                  <Globe className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('outputLanguageLabel')}
                 </label>
                 <select
@@ -457,8 +451,8 @@ export const Sidebar: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="flex items-center text-sm font-medium text-gray-700">
-                  <Rows3 className="w-4 h-4 text-blue-500 mr-2" />
+                <label className="flex items-center text-xs font-medium text-gray-500">
+                  <Rows3 className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('paragraphCountLabel')}
                 </label>
                 <select
@@ -482,15 +476,15 @@ export const Sidebar: React.FC = () => {
                     value={customParagraphCount}
                     onChange={(e) => setCustomParagraphCount(e.target.value)}
                     placeholder={t('customParagraphPlaceholder', { min: MIN_SCENE_COUNT, max: MAX_SCENE_COUNT })}
-                    className="w-full mt-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full mt-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
                   />
                 )}
                 <p className="text-[10px] text-gray-400 mt-1">{t('paragraphHint')}</p>
               </div>
 
               <div className="space-y-1">
-                <label className="flex items-center text-sm font-medium text-gray-700">
-                  <span className="text-yellow-500 mr-2">🔲</span>
+                <label className="flex items-center text-xs font-medium text-gray-500">
+                  <Grid2x2 className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('panelsPerParagraphLabel')}
                 </label>
                 <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
@@ -504,7 +498,7 @@ export const Sidebar: React.FC = () => {
                       setPanelsPerParagraph(`${nextMin}~${maxPanelsPerParagraph}`);
                     }}
                     placeholder={t('panelsPerParagraphMinPlaceholder')}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
                   />
                   <span className="text-sm text-gray-400">~</span>
                   <input
@@ -517,22 +511,22 @@ export const Sidebar: React.FC = () => {
                       setPanelsPerParagraph(`${minPanelsPerParagraph}~${nextMax}`);
                     }}
                     placeholder={t('panelsPerParagraphMaxPlaceholder')}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
                   />
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1">{t('panelsPerParagraphHint')}</p>
               </div>
 
               <div className="space-y-2">
-                <label className="flex items-center text-sm font-medium text-gray-700">
-                  <span className="text-green-500 mr-2">🖼️</span>
+                <label className="flex items-center text-xs font-medium text-gray-500">
+                  <Monitor className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('ratioLabel')}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setRatio('16:9')}
                     className={`flex flex-col items-center justify-center py-3 border rounded-lg transition-all ${
-                      ratio === '16:9' ? 'border-gray-800 bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                      ratio === '16:9' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <div className="w-8 h-5 bg-gray-300 rounded-sm mb-2" />
@@ -541,7 +535,7 @@ export const Sidebar: React.FC = () => {
                   <button
                     onClick={() => setRatio('9:16')}
                     className={`flex flex-col items-center justify-center py-3 border rounded-lg transition-all ${
-                      ratio === '9:16' ? 'border-gray-800 bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                      ratio === '9:16' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <div className="w-5 h-8 bg-gray-300 rounded-sm mb-2" />
@@ -552,8 +546,8 @@ export const Sidebar: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="flex items-center text-sm font-medium text-gray-700">
-                  <span className="text-pink-400 mr-2">🎭</span>
+                <label className="flex items-center text-xs font-medium text-gray-500">
+                  <Palette className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('animeStyleLabel')}
                 </label>
                 <select
@@ -573,14 +567,14 @@ export const Sidebar: React.FC = () => {
                     value={customAnimeStyle}
                     onChange={(e) => setCustomAnimeStyle(e.target.value)}
                     placeholder={t('customAnimeStylePlaceholder')}
-                    className="w-full mt-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full mt-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
                   />
                 )}
               </div>
 
               <div className="space-y-1">
-                <label className="flex items-center text-sm font-medium text-gray-700">
-                  <span className="text-orange-400 mr-2">✨</span>
+                <label className="flex items-center text-xs font-medium text-gray-500">
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('stylePreferenceLabel')}
                 </label>
                 <input
@@ -588,13 +582,13 @@ export const Sidebar: React.FC = () => {
                   value={style}
                   onChange={(e) => setStyle(e.target.value)}
                   placeholder={t('stylePreferencePlaceholder')}
-                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="flex items-center text-sm font-medium text-gray-700">
-                  <span className="text-gray-400 mr-2">📷</span>
+                <label className="flex items-center text-xs font-medium text-gray-500">
+                  <ImageIcon className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('referenceImagesLabel', { count: 3 })}
                 </label>
                 <input
@@ -610,7 +604,7 @@ export const Sidebar: React.FC = () => {
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full border border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
                 >
-                  <ImageIcon className="w-8 h-8 text-green-500 mb-2" />
+                  <ImageIcon className="w-8 h-8 text-indigo-400 mb-2" />
                   <span className="text-sm text-gray-600 font-medium">{t('uploadReference')}</span>
                   <span className="text-[10px] text-gray-400 mt-1">{t('uploadReferenceHint', { count: 3 })}</span>
                 </button>
@@ -646,6 +640,7 @@ export const Sidebar: React.FC = () => {
         </div>
         <button
           onClick={() => {
+            if (!window.confirm(t('clearHistoryConfirm'))) return;
             clearHistory();
             if (fileInputRef.current) {
               fileInputRef.current.value = '';

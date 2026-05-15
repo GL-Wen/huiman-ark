@@ -56,7 +56,10 @@ export const Header: React.FC = () => {
       </header>
 
       {isApiSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={(e) => { if (e.target === e.currentTarget) closeApiSettings(); }}
+        >
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" role="dialog" aria-modal="true">
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-lg font-bold text-gray-800">{t('settings')}</h3>
@@ -78,7 +81,7 @@ export const Header: React.FC = () => {
                   value={tempKey}
                   onChange={(e) => setTempKey(e.target.value)}
                   placeholder="sk-..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 text-sm"
                 />
               </div>
 
@@ -109,7 +112,7 @@ export const Header: React.FC = () => {
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800"
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
               >
                 {t('save')}
               </button>

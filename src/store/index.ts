@@ -73,14 +73,6 @@ interface AppState {
   setGeneratedComics: (comics: GeneratedComicMap) => void;
   setGeneratedComic: (scriptId: string, image: string) => void;
 
-  characterPortraits: Record<string, string>;
-  setCharacterPortrait: (key: string, image: string) => void;
-  setCharacterPortraits: (portraits: Record<string, string>) => void;
-  clearCharacterPortraits: () => void;
-
-  portraitGenerating: Record<string, boolean>;
-  setPortraitGenerating: (key: string, generating: boolean) => void;
-
   upgradeBannerDismissed: boolean;
   setUpgradeBannerDismissed: (dismissed: boolean) => void;
 
@@ -101,7 +93,7 @@ export const useAppStore = create<AppState>()(
 
       storyInput: '',
       setStoryInput: (story) => set({ storyInput: story }),
-      model: 'gpt-5.4',
+      model: 'claude-opus-4-7',
       setModel: (model) => set({ model }),
       language: '',
       setLanguage: (lang) => set({ language: lang }),
@@ -147,20 +139,6 @@ export const useAppStore = create<AppState>()(
           },
         })),
 
-      characterPortraits: {},
-      setCharacterPortrait: (key, image) =>
-        set((state) => ({
-          characterPortraits: { ...state.characterPortraits, [key]: image },
-        })),
-      setCharacterPortraits: (portraits) => set({ characterPortraits: portraits }),
-      clearCharacterPortraits: () => set({ characterPortraits: {} }),
-
-      portraitGenerating: {},
-      setPortraitGenerating: (key, generating) =>
-        set((state) => ({
-          portraitGenerating: { ...state.portraitGenerating, [key]: generating },
-        })),
-
       upgradeBannerDismissed: false,
       setUpgradeBannerDismissed: (dismissed) => set({ upgradeBannerDismissed: dismissed }),
 
@@ -170,10 +148,11 @@ export const useAppStore = create<AppState>()(
       clearHistory: () =>
         set({
           storyInput: '',
-          model: 'gpt-5.4',
+          model: 'claude-opus-4-7',
           paragraphCount: 'auto',
           customParagraphCount: '10',
           panelsPerParagraph: '3~6',
+          ratio: '16:9',
           animeStyle: 'guofeng',
           customAnimeStyle: '',
           style: '',
@@ -184,8 +163,6 @@ export const useAppStore = create<AppState>()(
           characterDesignImage: null,
           characterNames: [],
           generatedComics: {},
-          characterPortraits: {},
-          portraitGenerating: {},
           upgradeBannerDismissed: false,
           pendingComicId: null,
         }),
