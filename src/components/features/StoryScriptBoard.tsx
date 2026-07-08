@@ -139,7 +139,7 @@ export const StoryScriptBoard: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-5 bg-gray-50/40">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-6 content-start">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3 pb-6 content-start">
           {generatedScript.map((script, index) => (
             <div
               key={script.id}
