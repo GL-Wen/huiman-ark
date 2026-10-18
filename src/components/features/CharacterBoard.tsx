@@ -1,0 +1,678 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useAppStore, ScriptSegment } from '../../store';
+import { Users, Download, PlaySquare, RefreshCw, ChevronLeft } from 'lucide-react';
+import { ImageLightbox, type ImageLightboxItem } from '../common/ImageLightbox';
+import {
+  buildComicPagePrompt,
+  buildComicReferenceInstruction,
+  generateImage,
+  generateCharacterAssets,
+  parseCharacterProfiles,
+  sanitizeCharacterDesignText,
+  type CharacterReferenceMode,
+} from '../../api/llm';
+import { getAnimeStylePrompt } from '../../lib/animeStyles';
+
+const downloadImage = (url: string, filename: string) => {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const getSegmentDisplayContent = (raw: string) => raw.replace(/^\s*\[[^\]]+\]\s*\n?/, '').trim();
+
+export const CharacterBoard: React.FC = () => {
+  const t = useTranslations('CharacterBoard');
+  const {
+    apiKey,
+    openApiSettings,
+    currentStep,
+    setCurrentStep,
+    generatedScript,
+    characterDesign,
+    setCharacterDesign,
+    characterDesignImage,
+    setCharacterDesignImage,
+    characterNames,
+    setCharacterNames,
+    generatedComics,
+    setGeneratedComic,
+    pendingComicId,
+    setPendingComicId,
+    storyInput,
+    language,
+    ratio,
+    animeStyle,
+    customAnimeStyle,
+    style,
+    referenceImages,
+  } = useAppStore();
+  const [generatingCuts, setGeneratingCuts] = useState<Record<string, boolean>>({});
+  const [generationErrors, setGenerationErrors] = useState<Record<string, string>>({});
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [generatingAllIndex, setGeneratingAllIndex] = useState(-1);
+  const [isRegeneratingCharacterSheet, setIsRegeneratingCharacterSheet] = useState(false);
+  const [lightboxState, setLightboxState] = useState<{ items: ImageLightboxItem[]; index: number } | null>(null);
+  const autoRunRef = useRef<string | null>(null);
+  const displayCharacterDesign = useMemo(
+    () => (characterDesign ? sanitizeCharacterDesignText(characterDesign) : ''),
+    [characterDesign],
+  );
+  const characterProfiles = useMemo(() => parseCharacterProfiles(displayCharacterDesign), [displayCharacterDesign]);
+  const hasCharacterReference = useMemo(
+    () => Boolean(characterDesignImage),
+    [characterDesignImage],
+  );
+
+  const completedCount = useMemo(
+    () => generatedScript.filter((script) => Boolean(generatedComics[script.id])).length,
+    [generatedComics, generatedScript],
+  );
+  const isAllCompleted = generatedScript.length > 0 && completedCount >= generatedScript.length;
+  const getDefaultTitle = useCallback((index: number) => t('defaultSegmentTitle', { index }), [t]);
+  const characterSheetPreviewItems = useMemo(
+    () =>
+      characterDesignImage
+        ? [
+            {
+              src: characterDesignImage,
+              alt: t('referenceTitle'),
+              title: t('referenceTitle'),
+              subtitle: characterNames.length ? characterNames.join(' / ') : undefined,
+              downloadFilename: 'character-design-sheet.png',
+            },
+          ]
+        : [],
+    [characterDesignImage, characterNames, t],
+  );
+  const generatedComicPreviewItems = useMemo(
+    () =>
+      generatedScript.flatMap((script, index) => {
+        const generatedImage = generatedComics[script.id];
+
+        if (!generatedImage) {
+          return [];
+        }
+
+        return [
+          {
+            src: generatedImage,
+            alt: t('comicAlt', { title: script.title || getDefaultTitle(index + 1) }),
+            title: script.title || getDefaultTitle(index + 1),
+            subtitle: script.cut,
+            downloadFilename: `${script.cut.toLowerCase().replace(/\s+/g, '-')}.png`,
+          },
+        ];
+      }),
+    [generatedComics, generatedScript, getDefaultTitle, t],
+  );
+
+  const openLightbox = useCallback((items: ImageLightboxItem[], index: number) => {
+    if (!items.length) {
+      return;
+    }
+
+    setLightboxState({ items, index });
+  }, []);
+
+  const buildReferenceImages = useCallback((): {
+    mode: CharacterReferenceMode;
+    images: string[];
+    labels: string[];
+    portraitNames: string[];
+  } => {
+    const MAX_REF = 6;
+
+    if (characterDesignImage) {
+      const userRefImages = referenceImages.slice(0, MAX_REF - 1);
+      return {
+        mode: 'sheet',
+        images: [characterDesignImage, ...userRefImages],
+        labels: [
+          '【角色外观唯一标准】角色设定总图：图中每个角色的脸型、五官、发型发色、服装配色是本次漫画所有分格的硬约束，必须严格复刻，不得偏移或改造',
+          ...Array(userRefImages.length).fill(''),
+        ],
+        portraitNames: [],
+      };
+    }
+
+    if (referenceImages.length > 0) {
+      return { mode: 'user', images: referenceImages, labels: [], portraitNames: [] };
+    }
+
+    return { mode: 'none', images: [], labels: [], portraitNames: [] };
+  }, [characterDesignImage, referenceImages]);
+
+  const resolveStepAfterSingle = useCallback(
+    (scriptId: string) => {
+      const nextCompletedCount = new Set([...Object.keys(generatedComics), scriptId]).size;
+      return nextCompletedCount >= generatedScript.length ? 'done' : 'characters_done';
+    },
+    [generatedComics, generatedScript.length],
+  );
+
+  const handleGenerateComic = useCallback(
+    async (
+      script: ScriptSegment,
+      options: {
+        silent?: boolean;
+        manageStep?: boolean;
+      } = {},
+    ) => {
+      if (!apiKey) {
+        openApiSettings();
+        return;
+      }
+
+      if (options.manageStep) {
+        setCurrentStep('generating_comics');
+      }
+
+      setGeneratingCuts((prev) => ({ ...prev, [script.id]: true }));
+      setGenerationErrors((prev) => {
+        const next = { ...prev };
+        delete next[script.id];
+        return next;
+      });
+
+      try {
+        const { mode, images, labels, portraitNames } = buildReferenceImages();
+
+        const prompt = buildComicPagePrompt({
+          segment: script,
+          storyInput,
+          characterDesign: displayCharacterDesign || characterDesign,
+          characterNames,
+          language,
+          aspectRatio: ratio,
+          animeStyle: getAnimeStylePrompt(animeStyle, customAnimeStyle),
+          style,
+          characterReferenceMode: mode,
+          portraitNames,
+        });
+        const imageUrl = await generateImage(apiKey, prompt, {
+          referenceImages: images,
+          aspectRatio: ratio,
+          referenceInstruction: buildComicReferenceInstruction({
+            characterReferenceMode: mode,
+            referenceImagesCount: images.length,
+          }),
+          referenceLabels: labels,
+        });
+
+        setGeneratedComic(script.id, imageUrl);
+        setPendingComicId(null);
+
+        if (options.manageStep) {
+          setCurrentStep(resolveStepAfterSingle(script.id));
+        } else if (resolveStepAfterSingle(script.id) === 'done') {
+          setCurrentStep('done');
+        }
+
+        return imageUrl;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : t('alerts.imageFailed');
+        setGenerationErrors((prev) => ({ ...prev, [script.id]: message }));
+        if (options.manageStep) {
+          setCurrentStep('characters_done');
+        }
+        if (!options.silent) {
+          alert(message);
+        }
+        throw error;
+      } finally {
+        setGeneratingCuts((prev) => ({ ...prev, [script.id]: false }));
+      }
+    },
+    [
+      apiKey,
+      buildReferenceImages,
+      characterDesign,
+      characterNames,
+      displayCharacterDesign,
+      animeStyle,
+      customAnimeStyle,
+      language,
+      openApiSettings,
+      ratio,
+      resolveStepAfterSingle,
+      setCurrentStep,
+      setGeneratedComic,
+      setPendingComicId,
+      storyInput,
+      style,
+      t,
+    ],
+  );
+
+  const handleExportAll = useCallback(() => {
+    const exportQueue: Array<{ url: string; filename: string }> = [];
+
+    generatedScript.forEach((script, index) => {
+      const image = generatedComics[script.id];
+      if (image) {
+        exportQueue.push({
+          url: image,
+          filename: `${String(index + 1).padStart(2, '0')}-${script.cut.toLowerCase().replace(/\s+/g, '-')}.png`,
+        });
+      }
+    });
+
+    if (!exportQueue.length) {
+      alert(t('alerts.noExportableImages'));
+      return;
+    }
+
+    exportQueue.forEach((item, index) => {
+      window.setTimeout(() => downloadImage(item.url, item.filename), index * 250);
+    });
+  }, [generatedComics, generatedScript, t]);
+
+  const handleRegenerateCharacterSheet = useCallback(
+    async () => {
+      if (!apiKey) {
+        openApiSettings();
+        return;
+      }
+
+      if (!generatedScript.length) {
+        return;
+      }
+
+      setIsRegeneratingCharacterSheet(true);
+
+      try {
+        const selectedAnimeStyle = getAnimeStylePrompt(animeStyle, customAnimeStyle);
+        const { characterText, characterNames: nextCharacterNames, characterImage } = await generateCharacterAssets({
+          apiKey,
+          storyInput,
+          generatedScript,
+          language,
+          aspectRatio: ratio,
+          animeStyle: selectedAnimeStyle,
+          style,
+          referenceImages,
+          existingCharacterText: displayCharacterDesign || characterDesign,
+        });
+
+        setCharacterDesign(characterText);
+        setCharacterDesignImage(characterImage);
+        setCharacterNames(nextCharacterNames);
+        setPendingComicId(null);
+      } catch (error) {
+        alert(error instanceof Error ? error.message : t('alerts.characterDesignFailed'));
+      } finally {
+        setIsRegeneratingCharacterSheet(false);
+      }
+    },
+    [
+      apiKey,
+      animeStyle,
+      characterDesign,
+      customAnimeStyle,
+      displayCharacterDesign,
+      generatedScript,
+      language,
+      openApiSettings,
+      ratio,
+      referenceImages,
+      setCharacterDesign,
+      setCharacterDesignImage,
+      setCharacterNames,
+      setPendingComicId,
+      storyInput,
+      style,
+      t,
+    ],
+  );
+
+  const handleGenerateAll = useCallback(async () => {
+    if (!generatedScript.length) {
+      return;
+    }
+
+    if (!apiKey) {
+      openApiSettings();
+      return;
+    }
+
+    setIsGeneratingAll(true);
+    setCurrentStep('generating_comics');
+    setPendingComicId(null);
+
+    let hasError = false;
+
+    for (let i = 0; i < generatedScript.length; i++) {
+      setGeneratingAllIndex(i);
+      try {
+        await handleGenerateComic(generatedScript[i], {
+          silent: true,
+          manageStep: false,
+        });
+      } catch {
+        hasError = true;
+      }
+    }
+
+    setGeneratingAllIndex(-1);
+    setIsGeneratingAll(false);
+    setCurrentStep(hasError ? 'characters_done' : 'done');
+
+    if (hasError) {
+      alert(t('alerts.partialFailed'));
+    }
+  }, [apiKey, generatedScript, handleGenerateComic, openApiSettings, setCurrentStep, setPendingComicId, t]);
+
+  useEffect(() => {
+    if (currentStep !== 'generating_comics' || !pendingComicId) {
+      autoRunRef.current = null;
+      return;
+    }
+
+    if (!apiKey) {
+      openApiSettings();
+      return;
+    }
+
+    const runKey = pendingComicId;
+    if (autoRunRef.current === runKey) {
+      return;
+    }
+
+    autoRunRef.current = runKey;
+
+    if (pendingComicId === '__all__') {
+      handleGenerateAll().catch(() => undefined);
+      return;
+    }
+
+    const targetScript = generatedScript.find((script) => script.id === pendingComicId);
+    if (!targetScript) {
+      setPendingComicId(null);
+      setCurrentStep('characters_done');
+      return;
+    }
+
+    handleGenerateComic(targetScript, { silent: true, manageStep: true }).catch(() => undefined);
+  }, [
+    apiKey,
+    currentStep,
+    generatedScript,
+    handleGenerateAll,
+    handleGenerateComic,
+    openApiSettings,
+    pendingComicId,
+    setCurrentStep,
+    setPendingComicId,
+  ]);
+
+  return (
+    <div className="flex flex-col h-full bg-white">
+      <div className="shrink-0 border-b border-gray-100 px-5 py-3 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <span className="text-sm font-medium text-gray-700">
+            {isGeneratingAll && generatingAllIndex >= 0
+              ? t('progressGeneratingCurrent', { current: generatingAllIndex + 1, total: generatedScript.length })
+              : currentStep === 'generating_comics' && !isAllCompleted
+                ? t('progressGenerating', { completed: completedCount, total: generatedScript.length })
+                : t('progressDone', { completed: completedCount, total: generatedScript.length })}
+          </span>
+          <span className="ml-2 text-xs text-gray-400">
+            {hasCharacterReference ? t('withCharacterReference') : t('withoutCharacterReference')}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setCurrentStep('story_done')}
+            className="px-2.5 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors flex items-center"
+          >
+            <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+            {t('backToScript')}
+          </button>
+          <button
+            onClick={handleExportAll}
+            disabled={completedCount === 0}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              completedCount === 0
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-600 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {t('exportAll')}
+          </button>
+          <button
+            onClick={handleGenerateAll}
+            disabled={isGeneratingAll}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              isGeneratingAll ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            }`}
+          >
+            {isGeneratingAll ? t('generatingAll') : t('generateAll')}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-5 bg-gray-50/40 space-y-4">
+      <div className="grid grid-cols-1 gap-4">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="bg-gray-50/80 px-4 py-3 border-b border-gray-100 flex items-center">
+            <Users className="w-4 h-4 text-gray-400 mr-2" />
+            <h2 className="text-sm font-semibold text-gray-700">{t('referenceTitle')}</h2>
+          </div>
+
+          {characterProfiles.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(280px,420px)_minmax(0,1fr)] gap-0">
+              <div className="bg-white p-4 lg:border-r border-gray-200">
+                <div className="mb-3">
+                  <h3 className="text-sm font-bold text-slate-800">{t('referenceTitle')}</h3>
+                </div>
+                {characterDesignImage ? (
+                  <>
+                    <div className="w-full rounded-lg bg-gray-100 border border-gray-200 overflow-hidden">
+                      <img
+                        src={characterDesignImage}
+                        alt={t('referenceTitle')}
+                        className="w-full cursor-zoom-in object-contain transition duration-300 hover:scale-[1.02]"
+                        onClick={() => openLightbox(characterSheetPreviewItems, 0)}
+                      />
+                    </div>
+                    <p className="mt-3 text-[12px] leading-6 text-slate-600">
+                      {characterNames.length ? characterNames.join(' / ') : t('noCharacters')}
+                    </p>
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={handleRegenerateCharacterSheet}
+                        disabled={isRegeneratingCharacterSheet}
+                        className={`h-10 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${
+                          isRegeneratingCharacterSheet
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <RefreshCw
+                          className={`w-4 h-4 mr-1.5 ${isRegeneratingCharacterSheet ? 'animate-spin' : ''}`}
+                        />
+                        {isRegeneratingCharacterSheet ? t('generating') : t('regenerate')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadImage(characterDesignImage, 'character-design-sheet.png')}
+                        className="h-10 rounded-lg text-sm font-medium flex items-center justify-center bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        <Download className="w-4 h-4 mr-1.5" />
+                        {t('download')}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="min-h-64 rounded-lg bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center text-[12px] text-gray-400">
+                    {t('noCharacters')}
+                  </div>
+                )}
+              </div>
+
+              <div className="min-h-0 bg-white">
+                <div className="max-h-[560px] overflow-y-auto divide-y divide-gray-100">
+                  {characterProfiles.map((profile, index) => {
+                    const profileCardKey = `${profile.name}-${index}`;
+                    const detailSections = [
+                      { label: t('outfit'), value: profile.outfit },
+                      { label: t('personality'), value: profile.personality },
+                      { label: t('role'), value: profile.role },
+                      { label: t('staging'), value: profile.staging },
+                    ].filter((section) => section.value);
+
+                    return (
+                      <div key={profileCardKey} className="bg-white p-4">
+                        <h4 className="text-sm font-semibold text-gray-800 mb-1">{profile.name}</h4>
+                        <p className="text-[12px] leading-5 text-gray-600">
+                          {profile.appearance || t('noDescription')}
+                        </p>
+                        {detailSections.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {detailSections.map((section) => (
+                              <section key={`${profile.name}-${section.label}`}>
+                                <p className="text-[11px] font-medium text-gray-400 mb-0.5">{section.label}</p>
+                                <p className="text-[12px] leading-5 text-gray-600">{section.value}</p>
+                              </section>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 text-[12px] text-slate-700 whitespace-pre-wrap leading-6 tracking-[0.01em]">
+              {displayCharacterDesign || t('noCharacterText')}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className={`grid gap-3 pb-4 ${ratio === '9:16' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+        {generatedScript.map((script, index) => {
+          const generatedImage = generatedComics[script.id];
+          const isGenerating = Boolean(generatingCuts[script.id]);
+          const errorMessage = generationErrors[script.id];
+          const isCurrentlyGenerating = isGeneratingAll && generatingAllIndex === index;
+
+          return (
+            <div
+              key={script.id}
+              className={`bg-white border rounded-md overflow-hidden flex flex-col transition-shadow ${
+                isCurrentlyGenerating
+                  ? 'border-indigo-300 ring-2 ring-indigo-100'
+                  : 'border-gray-200'
+              }`}
+            >
+              <div className={`w-full ${ratio === '9:16' ? 'aspect-[9/16]' : 'aspect-video'} bg-gray-100 border-b border-gray-100 overflow-hidden flex items-center justify-center`}>
+                {generatedImage ? (
+                  <img
+                    src={generatedImage}
+                    alt={t('comicAlt', { title: script.title || getDefaultTitle(index + 1) })}
+                    className="h-full w-full cursor-zoom-in object-cover transition duration-300 hover:scale-[1.03]"
+                    onClick={() => {
+                      const previewIndex = generatedComicPreviewItems.findIndex((item) => item.src === generatedImage);
+                      openLightbox(generatedComicPreviewItems, previewIndex >= 0 ? previewIndex : 0);
+                    }}
+                  />
+                ) : errorMessage ? (
+                  <div className="w-full h-full bg-red-50 text-red-500 flex flex-col items-center justify-center text-center px-5">
+                    <p className="text-sm font-semibold">{t('generationFailed')}</p>
+                    <p className="text-xs leading-5 mt-1 max-w-[240px] text-red-400">{errorMessage}</p>
+                  </div>
+                ) : (
+                  <div className="text-center px-4">
+                    <p className="text-xs text-gray-400">{t('notGeneratedYet')}</p>
+                    <p className="text-[11px] text-gray-300 mt-1">{t('notGeneratedHint')}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-3 py-2 border-b border-gray-100 flex justify-between items-center">
+                <span className="text-xs font-semibold text-gray-700">
+                  {script.title || getDefaultTitle(index + 1)}
+                </span>
+                <span className="text-[10px] text-gray-400 font-mono">{script.cut}</span>
+              </div>
+
+              <div className="p-3 flex-1 overflow-y-auto max-h-[240px]">
+                <div className="text-[13px] text-gray-700 whitespace-pre-wrap leading-6 tracking-[0.01em]">
+                  {getSegmentDisplayContent(script.raw)}
+                </div>
+              </div>
+
+              <div className="px-3 py-2 border-t border-gray-100 flex items-center justify-between gap-2">
+                {generatedImage ? (
+                  <button
+                    onClick={() =>
+                      downloadImage(generatedImage, `${script.cut.toLowerCase().replace(/\s+/g, '-')}.png`)
+                    }
+                    className="text-[11px] font-medium flex items-center text-gray-500 hover:text-gray-800 transition-colors"
+                  >
+                    <Download className="w-3 h-3 mr-1" />
+                    {t('download')}
+                  </button>
+                ) : (
+                  <span />
+                )}
+
+                <button
+                  onClick={() => handleGenerateComic(script, { manageStep: false })}
+                  disabled={isGenerating}
+                  className={`px-3 py-1 rounded text-[11px] font-medium flex items-center transition-colors ${
+                    isGenerating
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-indigo-600 hover:bg-indigo-50'
+                  }`}
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mr-1" />
+                      {t('generating')}
+                    </>
+                  ) : (
+                    <>
+                      <PlaySquare className="w-3 h-3 mr-1" />
+                      {generatedImage ? t('regenerate') : t('generateComic')}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      </div>
+
+      <ImageLightbox
+        isOpen={Boolean(lightboxState)}
+        items={lightboxState?.items ?? []}
+        activeIndex={lightboxState?.index ?? 0}
+        labels={{
+          close: t('lightbox.close'),
+          previous: t('lightbox.previous'),
+          next: t('lightbox.next'),
+          zoomIn: t('lightbox.zoomIn'),
+          zoomOut: t('lightbox.zoomOut'),
+          reset: t('lightbox.reset'),
+          download: t('download'),
+          imageCounter: (current, total) => t('lightbox.imageCounter', { current, total }),
+          keyboardHint: t('lightbox.keyboardHint'),
+        }}
+        onClose={() => setLightboxState(null)}
+        onIndexChange={(index) => setLightboxState((prev) => (prev ? { ...prev, index } : prev))}
+        onDownload={(item) => downloadImage(item.src, item.downloadFilename || 'image.png')}
+      />
+    </div>
+  );
+};
