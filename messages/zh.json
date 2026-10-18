@@ -48,13 +48,35 @@
     "en": "English",
     "ja": "日本語",
     "freeSoftware": "免费开源",
-    "apiSettings": "配置 API Key",
-    "apiConfigured": "API Key 已配置",
-    "apiDescription": "软件免费使用，无需注册。请填写部署者所配置接口对应的 API Key，AI 服务用量由你的接口账户承担。",
-    "apiKeyPlaceholder": "输入你的 API Key",
-    "apiKeyPrivacy": "API Key 仅保存在当前页面内存中，关闭弹窗后可继续使用，刷新页面后清空。生成时会通过本站服务器转发至部署者配置的 AI 接口，请仅在可信部署中使用。",
-    "clearApiKey": "清除 Key",
-    "saveApiKey": "保存并继续"
+    "apiSettings": "API 设置",
+    "apiConfigured": "API 已就绪",
+    "apiDescription": "请求地址、文本模型、图像模型和 API Key 均可单独配置。每项留空使用部署默认值，填写的内容优先生效。",
+    "apiKeyPlaceholder": "留空使用服务端默认 Key",
+    "apiKeyPrivacy": "请求地址和模型偏好保存在本机。你填写的 API Key 仅保存在当前页面内存中，刷新后清空；生成时经本站服务器转发至所选 AI 接口，请仅在可信部署中使用。",
+    "saveApiKey": "保存并继续",
+    "help": "使用帮助 / 联系作者",
+    "needHelp": "不会配置？查看帮助并联系作者",
+    "helpIntro": "在当前页面即可创作，无需自行部署。可使用部署默认配置，也可在 API 设置中填写自己的地址、模型和 Key。",
+    "helpGetKey": "如需自己的 Key，可先<register>注册 AntMoo 接口账号</register>，再<tokens>创建 API Key</tokens>。",
+    "helpConfigureKey": "打开 API 设置，按需填写；留空使用部署默认值",
+    "helpCreate": "在左侧输入故事，依次生成脚本、角色设定图和漫画页。",
+    "helpPricing": "软件免费使用；AI 接口用量按服务商规则计费，由实际使用的接口账户承担。",
+    "contactAuthor": "联系作者",
+    "contactHint": "不会配置或需要新版使用帮助，可以通过以下方式联系作者。",
+    "wechat": "微信",
+    "email": "邮箱",
+    "onlineLegacy": "在线体验站（旧版）",
+    "onlineLegacyHint": "在线体验站目前仍为旧版；新版使用帮助请联系作者。",
+    "apiBaseUrl": "请求地址（含 https://）",
+    "textModel": "文本模型",
+    "imageModel": "图像模型",
+    "defaultValue": "默认：{value}（留空使用）",
+    "resetApiSettings": "恢复默认",
+    "loadingDefaults": "正在读取部署默认配置…",
+    "defaultsFailed": "未能读取部署默认配置。可填写自己的请求地址、模型和 Key 后继续。",
+    "defaultKeyAvailable": "服务端已配置默认 Key，API Key 留空即可使用。",
+    "defaultKeyMissing": "服务端未配置默认 Key，请填写自己的 API Key 后生成。",
+    "providerKeyHint": "更换服务商时请填写自己的 API Key；服务端默认 Key 仅用于默认服务地址。"
   },
   "EmptyCanvas": {
     "brand": "绘漫方舟",
@@ -69,7 +91,7 @@
     "step3Desc": "生成角色设定图",
     "step4Title": "生成漫画",
     "step4Desc": "逐段输出漫画页",
-    "apiKeyHint": "免费使用软件，自备 API Key 和接口额度"
+    "apiKeyHint": "免费使用软件，支持部署默认配置或自备 API Key"
   },
   "Sidebar": {
     "storyDescription": "漫画故事描述：",
@@ -239,5 +261,9 @@
       "saveImage": "保存图片",
       "page": "第 {index} 页"
     }
+  },
+  "Footer": {
+    "subtitle": "AI 漫画生成工作台",
+    "apiPortal": "获取 API Key"
   }
 }

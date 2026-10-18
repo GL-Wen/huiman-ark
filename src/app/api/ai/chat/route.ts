@@ -13,22 +13,23 @@ export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
-    const { apiKey, baseUrl } = getAiConfig(request);
     const body = await readJsonBody(request, 1024 * 1024);
+    const config = getAiConfig(request, body, 'text');
+    const { apiKey, model } = config;
     const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
     const systemPrompt = typeof body.systemPrompt === 'string' ? body.systemPrompt.trim() : '';
     if (!prompt || !systemPrompt) throw new GenerationHttpError('生成提示词不能为空', 400);
     if (prompt.length > 120_000 || systemPrompt.length > 40_000) {
       throw new GenerationHttpError('文本内容过长，请缩短后重试', 413);
     }
-    const upstream = await requestAi(`${baseUrl}/v1/chat/completions`, {
+    const upstream = await requestAi(config, '/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-opus-5-5',
+        model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt },

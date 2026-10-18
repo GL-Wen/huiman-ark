@@ -29,6 +29,7 @@ export const CharacterBoard: React.FC = () => {
   const t = useTranslations('CharacterBoard');
   const {
     apiKey,
+    hasDefaultApiKey,
     openApiSettings,
     currentStep,
     setCurrentStep,
@@ -163,7 +164,7 @@ export const CharacterBoard: React.FC = () => {
         manageStep?: boolean;
       } = {},
     ) => {
-      if (!apiKey) {
+      if (!apiKey.trim() && !hasDefaultApiKey) {
         openApiSettings();
         return;
       }
@@ -230,6 +231,7 @@ export const CharacterBoard: React.FC = () => {
     },
     [
       apiKey,
+      hasDefaultApiKey,
       buildReferenceImages,
       characterDesign,
       characterNames,
@@ -274,7 +276,7 @@ export const CharacterBoard: React.FC = () => {
 
   const handleRegenerateCharacterSheet = useCallback(
     async () => {
-      if (!apiKey) {
+      if (!apiKey.trim() && !hasDefaultApiKey) {
         openApiSettings();
         return;
       }
@@ -311,6 +313,7 @@ export const CharacterBoard: React.FC = () => {
     },
     [
       apiKey,
+      hasDefaultApiKey,
       animeStyle,
       characterDesign,
       customAnimeStyle,
@@ -335,7 +338,7 @@ export const CharacterBoard: React.FC = () => {
       return;
     }
 
-    if (!apiKey) {
+    if (!apiKey.trim() && !hasDefaultApiKey) {
       openApiSettings();
       return;
     }
@@ -365,7 +368,7 @@ export const CharacterBoard: React.FC = () => {
     if (hasError) {
       alert(t('alerts.partialFailed'));
     }
-  }, [apiKey, generatedScript, handleGenerateComic, openApiSettings, setCurrentStep, setPendingComicId, t]);
+  }, [apiKey, hasDefaultApiKey, generatedScript, handleGenerateComic, openApiSettings, setCurrentStep, setPendingComicId, t]);
 
   useEffect(() => {
     if (currentStep !== 'generating_comics' || !pendingComicId) {
@@ -373,7 +376,7 @@ export const CharacterBoard: React.FC = () => {
       return;
     }
 
-    if (!apiKey) {
+    if (!apiKey.trim() && !hasDefaultApiKey) {
       openApiSettings();
       return;
     }
@@ -400,6 +403,7 @@ export const CharacterBoard: React.FC = () => {
     handleGenerateComic(targetScript, { silent: true, manageStep: true }).catch(() => undefined);
   }, [
     apiKey,
+    hasDefaultApiKey,
     currentStep,
     generatedScript,
     handleGenerateAll,

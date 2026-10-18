@@ -24,9 +24,28 @@ export interface GeneratedComicMap {
   [scriptId: string]: string;
 }
 
+export interface AiDefaultConfig {
+  baseUrl: string;
+  textModel: string;
+  imageModel: string;
+  hasApiKey: boolean;
+}
+
 interface AppState {
   apiKey: string;
   setApiKey: (key: string) => void;
+  apiBaseUrl: string;
+  setApiBaseUrl: (baseUrl: string) => void;
+  textModel: string;
+  setTextModel: (model: string) => void;
+  imageModel: string;
+  setImageModel: (model: string) => void;
+  defaultApiBaseUrl: string;
+  defaultTextModel: string;
+  defaultImageModel: string;
+  hasDefaultApiKey: boolean;
+  setAiDefaults: (config: AiDefaultConfig) => void;
+  resetApiOverrides: () => void;
   isApiSettingsOpen: boolean;
   openApiSettings: () => void;
   closeApiSettings: () => void;
@@ -82,6 +101,23 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       apiKey: '',
       setApiKey: (key) => set({ apiKey: key }),
+      apiBaseUrl: '',
+      setApiBaseUrl: (apiBaseUrl) => set({ apiBaseUrl }),
+      textModel: '',
+      setTextModel: (textModel) => set({ textModel }),
+      imageModel: '',
+      setImageModel: (imageModel) => set({ imageModel }),
+      defaultApiBaseUrl: 'https://api.antmoo.cc',
+      defaultTextModel: 'claude-opus-5-5',
+      defaultImageModel: 'gpt-image-2',
+      hasDefaultApiKey: false,
+      setAiDefaults: (config) => set({
+        defaultApiBaseUrl: config.baseUrl,
+        defaultTextModel: config.textModel,
+        defaultImageModel: config.imageModel,
+        hasDefaultApiKey: config.hasApiKey,
+      }),
+      resetApiOverrides: () => set({ apiBaseUrl: '', textModel: '', imageModel: '', apiKey: '' }),
       isApiSettingsOpen: false,
       openApiSettings: () => set({ isApiSettingsOpen: true }),
       closeApiSettings: () => set({ isApiSettingsOpen: false }),
@@ -162,6 +198,9 @@ export const useAppStore = create<AppState>()(
         const saved = persistedState as Partial<AppState> | undefined;
         return {
           ...currentState,
+          apiBaseUrl: typeof saved?.apiBaseUrl === 'string' ? saved.apiBaseUrl : '',
+          textModel: typeof saved?.textModel === 'string' ? saved.textModel : '',
+          imageModel: typeof saved?.imageModel === 'string' ? saved.imageModel : '',
           language: saved?.language ?? currentState.language,
           paragraphCount: saved?.paragraphCount ?? currentState.paragraphCount,
           customParagraphCount: saved?.customParagraphCount ?? currentState.customParagraphCount,
@@ -173,6 +212,9 @@ export const useAppStore = create<AppState>()(
         };
       },
       partialize: (state) => ({
+        apiBaseUrl: state.apiBaseUrl,
+        textModel: state.textModel,
+        imageModel: state.imageModel,
         language: state.language,
         paragraphCount: state.paragraphCount,
         customParagraphCount: state.customParagraphCount,

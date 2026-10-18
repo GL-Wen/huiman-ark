@@ -40,8 +40,9 @@ const loadReference = (value: string) => {
 
 export async function POST(request: Request) {
   try {
-    const { apiKey, baseUrl } = getAiConfig(request);
     const body = await readJsonBody(request, 170 * 1024 * 1024);
+    const config = getAiConfig(request, body, 'image');
+    const { apiKey, model } = config;
     const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
     if (!prompt) throw new GenerationHttpError('生图提示词不能为空', 400);
     if (body.aspectRatio !== undefined && body.aspectRatio !== '16:9' && body.aspectRatio !== '9:16') {
@@ -66,7 +67,6 @@ export async function POST(request: Request) {
     ].filter(Boolean).join('\n\n');
     if (finalPrompt.length > 120_000) throw new GenerationHttpError('生图提示词过长', 413);
     const loadedReferences = references.map(loadReference);
-    const model = 'gpt-image-2';
     const size = body.aspectRatio === '9:16' ? '1024x1536' : '1536x1024';
 
     let upstream: Response;
@@ -81,13 +81,13 @@ export async function POST(request: Request) {
       loadedReferences.forEach(({ blob, mimeType }, index) => {
         form.append(loadedReferences.length > 1 ? 'image[]' : 'image', blob, `reference-${index + 1}.${mimeType.split('/')[1] || 'png'}`);
       });
-      upstream = await requestAi(`${baseUrl}/v1/images/edits`, {
+      upstream = await requestAi(config, '/v1/images/edits', {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}` },
         body: form,
       });
     } else {
-      upstream = await requestAi(`${baseUrl}/v1/images/generations`, {
+      upstream = await requestAi(config, '/v1/images/generations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

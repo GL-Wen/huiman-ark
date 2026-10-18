@@ -48,13 +48,35 @@
     "en": "English",
     "ja": "日本語",
     "freeSoftware": "無料・オープンソース",
-    "apiSettings": "API Key を設定",
-    "apiConfigured": "API Key 設定済み",
-    "apiDescription": "ソフトウェアは無料で、登録は不要です。この環境で設定された AI サービスの API Key を入力してください。AI の利用料金は、ご自身の API アカウントに請求されます。",
-    "apiKeyPlaceholder": "API Key を入力",
-    "apiKeyPrivacy": "Key はページのメモリ内だけに保持され、ダイアログを閉じても利用できます。再読み込みで消去されます。生成時は、このサーバーから設定済みの AI サービスへ転送されるため、信頼できる環境でご利用ください。",
-    "clearApiKey": "Key を消去",
-    "saveApiKey": "保存して続ける"
+    "apiSettings": "API 設定",
+    "apiConfigured": "API 利用可能",
+    "apiDescription": "接続先、テキストモデル、画像モデル、API Key を個別に設定できます。空欄はこの環境の既定値を使用し、入力した値を優先します。",
+    "apiKeyPlaceholder": "空欄でサーバーの既定 Key を使用",
+    "apiKeyPrivacy": "接続先とモデルの設定はこの端末に保存されます。入力した API Key はページのメモリ内だけに保持され、再読み込みで消去されます。生成時はこのサーバーから選択した AI サービスへ転送されるため、信頼できる環境でご利用ください。",
+    "saveApiKey": "保存して続ける",
+    "help": "使い方 / 作者に連絡",
+    "needHelp": "設定にお困りですか？使い方と連絡先はこちら",
+    "helpIntro": "このページで制作でき、ご自身でデプロイする必要はありません。環境の既定設定を使うか、API 設定で接続先、モデル、Key を指定できます。",
+    "helpGetKey": "ご自身の Key が必要な場合は、<register>AntMoo API アカウントを登録</register>して、<tokens>API Key を作成</tokens>します。",
+    "helpConfigureKey": "API 設定を開き、変更する項目のみ入力（空欄は既定値）",
+    "helpCreate": "左側にストーリーを入力し、脚本、キャラクター設定図、漫画ページを順に生成します。",
+    "helpPricing": "ソフトウェアは無料です。AI の利用料金はサービス提供元の規定に従い、生成に使う API アカウントに請求されます。",
+    "contactAuthor": "作者に連絡",
+    "contactHint": "設定方法や新バージョンの使い方については、以下の連絡先から作者にお問い合わせください。",
+    "wechat": "WeChat",
+    "email": "メール",
+    "onlineLegacy": "オンライン体験サイト（旧版）",
+    "onlineLegacyHint": "オンライン体験サイトは現在も旧版です。新バージョンの利用方法は作者にお問い合わせください。",
+    "apiBaseUrl": "API 接続先（https:// を含む）",
+    "textModel": "テキストモデル",
+    "imageModel": "画像モデル",
+    "defaultValue": "既定値：{value}（空欄で使用）",
+    "resetApiSettings": "既定値に戻す",
+    "loadingDefaults": "環境の既定設定を読み込み中…",
+    "defaultsFailed": "環境の既定設定を取得できませんでした。ご自身の接続先、モデル、Key を入力して続けられます。",
+    "defaultKeyAvailable": "サーバーに既定の Key が設定されています。API Key は空欄で利用できます。",
+    "defaultKeyMissing": "サーバーに既定の Key がありません。生成前にご自身の API Key を入力してください。",
+    "providerKeyHint": "別のサービスを利用する場合はご自身の API Key を入力してください。サーバーの既定 Key は既定の接続先でのみ使用されます。"
   },
   "EmptyCanvas": {
     "brand": "Huiman Ark",
@@ -69,7 +91,7 @@
     "step3Desc": "キャラクター設定図を生成",
     "step4Title": "漫画生成",
     "step4Desc": "漫画ページを出力",
-    "apiKeyHint": "ソフトウェアは無料。API Key と利用枠はご自身でご用意ください。"
+    "apiKeyHint": "ソフトウェアは無料。環境の既定設定またはご自身の API Key で利用できます。"
   },
   "Sidebar": {
     "storyDescription": "漫画ストーリーの説明：",
@@ -239,5 +261,9 @@
       "saveImage": "画像を保存",
       "page": "{index} ページ"
     }
+  },
+  "Footer": {
+    "subtitle": "AI 漫画制作ワークスペース",
+    "apiPortal": "API Key を取得"
   }
 }

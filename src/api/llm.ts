@@ -45,7 +45,7 @@ export const CHARACTER_DESIGNER_PROMPT = `你是一个专业的动漫角色设�
 - 标签后的具体内容使用用户要求的输出语言填写
 - 直接输出角色设定，不要添加额外解释`;
 
-import type { ScriptSegment } from '../store';
+import { useAppStore, type ScriptSegment } from '../store/index.ts';
 
 type AspectRatio = '16:9' | '9:16';
 
@@ -813,6 +813,7 @@ export const generateImage = async (
   prompt: string,
   options: GenerateImageOptions = {},
 ): Promise<string> => {
+  const { apiBaseUrl, imageModel } = useAppStore.getState();
   const controller = new AbortController();
   const timeoutMs = options.timeoutMs ?? 10 * 60 * 1000;
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -822,10 +823,12 @@ export const generateImage = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey.trim()}`,
+        ...(apiKey.trim() ? { Authorization: `Bearer ${apiKey.trim()}` } : {}),
       },
       body: JSON.stringify({
         prompt,
+        baseUrl: apiBaseUrl.trim() || undefined,
+        model: imageModel.trim() || undefined,
         referenceImages: options.referenceImages ?? [],
         aspectRatio: options.aspectRatio ?? '16:9',
         referenceInstruction: options.referenceInstruction,
@@ -856,13 +859,19 @@ export const generateContent = async (
   prompt: string,
   systemPrompt: string,
 ): Promise<string> => {
+  const { apiBaseUrl, textModel } = useAppStore.getState();
   const response = await fetch('/api/ai/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey.trim()}`,
+      ...(apiKey.trim() ? { Authorization: `Bearer ${apiKey.trim()}` } : {}),
     },
-    body: JSON.stringify({ prompt, systemPrompt }),
+    body: JSON.stringify({
+      prompt,
+      systemPrompt,
+      baseUrl: apiBaseUrl.trim() || undefined,
+      model: textModel.trim() || undefined,
+    }),
   });
 
   if (!response.ok) {

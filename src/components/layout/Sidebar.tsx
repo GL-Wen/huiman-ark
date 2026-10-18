@@ -149,6 +149,7 @@ export const Sidebar: React.FC = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const {
     apiKey,
+    hasDefaultApiKey,
     openApiSettings,
     storyInput,
     setStoryInput,
@@ -276,7 +277,7 @@ export const Sidebar: React.FC = () => {
   };
 
   const handleGenerateStory = async () => {
-    if (!apiKey) {
+    if (!apiKey.trim() && !hasDefaultApiKey) {
       openApiSettings();
       return;
     }

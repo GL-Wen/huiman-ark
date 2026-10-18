@@ -14,7 +14,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/server/*.test.ts src/store/*.test.ts"
+    "test": "node --experimental-strip-types --test src/lib/server/*.test.ts src/store/*.test.ts src/api/*.test.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

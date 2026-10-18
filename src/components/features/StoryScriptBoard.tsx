@@ -29,6 +29,7 @@ export const StoryScriptBoard: React.FC = () => {
     setGeneratedScript,
     setCurrentStep,
     apiKey,
+    hasDefaultApiKey,
     openApiSettings,
     ratio,
     language,
@@ -52,7 +53,7 @@ export const StoryScriptBoard: React.FC = () => {
   }, [generatedScript, getDefaultTitle, setGeneratedScript]);
 
   const handleGenerateCharacters = async () => {
-    if (!apiKey) {
+    if (!apiKey.trim() && !hasDefaultApiKey) {
       openApiSettings();
       return;
     }
@@ -89,7 +90,7 @@ export const StoryScriptBoard: React.FC = () => {
   };
 
   const handleSkipToComics = () => {
-    if (!apiKey) {
+    if (!apiKey.trim() && !hasDefaultApiKey) {
       openApiSettings();
       return;
     }
@@ -102,7 +103,7 @@ export const StoryScriptBoard: React.FC = () => {
   };
 
   const handleGenerateSingleComic = (scriptId: string) => {
-    if (!apiKey) {
+    if (!apiKey.trim() && !hasDefaultApiKey) {
       openApiSettings();
       return;
     }

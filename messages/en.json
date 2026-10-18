@@ -48,13 +48,35 @@
     "en": "English",
     "ja": "日本語",
     "freeSoftware": "Free & open source",
-    "apiSettings": "Set API Key",
-    "apiConfigured": "API Key configured",
-    "apiDescription": "The software is free and requires no account. Enter an API key for the service configured by this deployment. AI usage is billed to your provider account.",
-    "apiKeyPlaceholder": "Enter your API key",
-    "apiKeyPrivacy": "Your key stays in page memory and remains available when this dialog closes. Reloading clears it. Generation requests pass through this server to its configured AI provider; use a deployment you trust.",
-    "clearApiKey": "Clear key",
-    "saveApiKey": "Save & continue"
+    "apiSettings": "API settings",
+    "apiConfigured": "API ready",
+    "apiDescription": "Set the API address, text model, image model, or API key individually. Leave any field blank to inherit its deployment default; your values take priority.",
+    "apiKeyPlaceholder": "Leave blank to use the server default key",
+    "apiKeyPrivacy": "The API address and model preferences are saved on this device. Your API key stays in page memory and is cleared on reload. Generation passes through this server to the selected AI provider; use a deployment you trust.",
+    "saveApiKey": "Save & continue",
+    "help": "Help / Contact author",
+    "needHelp": "Need help? View the guide and contact the author",
+    "helpIntro": "Create on this page without deploying the app yourself. Use deployment defaults or enter your own address, models, and key in API settings.",
+    "helpGetKey": "If you need your own key, <register>register an AntMoo API account</register>, then <tokens>create an API key</tokens>.",
+    "helpConfigureKey": "Open API settings and fill in only what you want to override",
+    "helpCreate": "Enter a story on the left, then generate the script, character designs, and comic pages.",
+    "helpPricing": "The software is free. AI usage is charged by the provider to the API account used for generation.",
+    "contactAuthor": "Contact the author",
+    "contactHint": "Contact the author below for setup assistance or help with the new version.",
+    "wechat": "WeChat",
+    "email": "Email",
+    "onlineLegacy": "Online demo (older version)",
+    "onlineLegacyHint": "The online demo still runs the older version. Contact the author for help using the new version.",
+    "apiBaseUrl": "API address (include https://)",
+    "textModel": "Text model",
+    "imageModel": "Image model",
+    "defaultValue": "Default: {value} (leave blank to use)",
+    "resetApiSettings": "Use defaults",
+    "loadingDefaults": "Loading deployment defaults…",
+    "defaultsFailed": "Could not load deployment defaults. You can enter your own API address, models, and key to continue.",
+    "defaultKeyAvailable": "A server default key is configured. Leave API Key blank to use it.",
+    "defaultKeyMissing": "No server default key is configured. Enter your own API key before generating.",
+    "providerKeyHint": "Enter your own API key when switching providers. The server default key is used only with the default provider address."
   },
   "EmptyCanvas": {
     "brand": "Huiman Ark",
@@ -69,7 +91,7 @@
     "step3Desc": "Generate character designs",
     "step4Title": "Comics",
     "step4Desc": "Output manga pages",
-    "apiKeyHint": "Free software. Bring your own API key and provider quota."
+    "apiKeyHint": "Free software. Use deployment defaults or your own API key."
   },
   "Sidebar": {
     "storyDescription": "Comic story description:",
@@ -239,5 +261,9 @@
       "saveImage": "Save Image",
       "page": "Page {index}"
     }
+  },
+  "Footer": {
+    "subtitle": "AI comic generation workspace",
+    "apiPortal": "Get an API key"
   }
 }
