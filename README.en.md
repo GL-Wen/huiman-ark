@@ -3,8 +3,18 @@
 <p align="center">
   <img src="./public/favicon.svg" alt="Huiman Ark Logo" width="120" />
 </p>
+<p align="center">
+  <a href="https://github.com/GL-Wen/huiman-ark"><img src="https://img.shields.io/github/stars/GL-Wen/huiman-ark?style=social" alt="GitHub Repo stars" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js" alt="Next.js" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0-blue?style=flat&logo=typescript" alt="TypeScript" /></a>
+  <a href="https://huiman.antmoo.com"><img src="https://img.shields.io/badge/Live_Demo-huiman.antmoo.com-brightgreen" alt="Live Demo" /></a>
+  <a href="https://x.com/antmoch"><img src="https://img.shields.io/badge/X-@antmoch-000000?style=flat&logo=x" alt="Twitter/X" /></a>
+</p>
 
 [中文](./README.md) | English
+
+> ⭐️ **If this open-source project helps your AI comic workflow or Next.js development, please give it a Star ⭐️!**
 
 Turn stories into storyboard scripts, character designs, and comic pages. Built with Next.js, React, TypeScript, and Tailwind CSS, with Chinese, English, and Japanese interfaces.
 
@@ -14,7 +24,7 @@ Huiman Ark uses the [MIT license](./LICENSE): free to use, modify, distribute, a
 
 If you cannot deploy the app, visit the [online demo](https://huiman.antmoo.com). **The demo currently runs the older credits-based version; this repository's free version has not been deployed there yet.** Contact the author for help accessing the new version or deploying it.
 
-Public support contacts: WeChat **13623839679** · Email [toowell2015@126.com](mailto:toowell2015@126.com) · QQ **3575554244**. The project owner has authorized publishing these support contacts.
+Public support contacts: WeChat **13623839679** · Email [toowell2015@126.com](mailto:toowell2015@126.com) · QQ **3575554244** · X (Twitter) [@antmoch](https://x.com/antmoch). The project owner has authorized publishing these support contacts.
 
 On an instance running the new version, no self-hosting or Huiman Ark account is required:
 

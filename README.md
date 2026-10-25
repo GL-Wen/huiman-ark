@@ -3,8 +3,18 @@
 <p align="center">
   <img src="./public/favicon.svg" alt="Huiman Ark Logo" width="120" />
 </p>
+<p align="center">
+  <a href="https://github.com/GL-Wen/huiman-ark"><img src="https://img.shields.io/github/stars/GL-Wen/huiman-ark?style=social" alt="GitHub Repo stars" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js" alt="Next.js" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0-blue?style=flat&logo=typescript" alt="TypeScript" /></a>
+  <a href="https://huiman.antmoo.com"><img src="https://img.shields.io/badge/Live_Demo-huiman.antmoo.com-brightgreen" alt="Live Demo" /></a>
+  <a href="https://x.com/antmoch"><img src="https://img.shields.io/badge/X-@antmoch-000000?style=flat&logo=x" alt="Twitter/X" /></a>
+</p>
 
 中文 | [English](./README.en.md)
+
+> ⭐️ **如果这个项目对你的 AI 漫画创作、分镜生成或 Next.js 全栈开发有所启发，欢迎右上角点个 Star ⭐️ 支持一下！**
 
 将故事变成分镜脚本、角色设定和漫画画面的 AI 创作工具。使用 Next.js、React、TypeScript 和 Tailwind CSS 构建，支持中文、英文和日文界面。
 
@@ -14,7 +24,7 @@
 
 不会部署可以先访问 [在线体验站](https://huiman.antmoo.com)。**目前体验站仍为旧积分版，本仓库的免费版尚未同步部署。** 需要新版使用帮助或部署协助，请联系作者。
 
-公开支持联系方式：微信 **13623839679** · 邮箱 [toowell2015@126.com](mailto:toowell2015@126.com) · QQ **3575554244**。这些是作者授权公开的使用支持信息。
+公开支持联系方式：微信 **13623839679** · 邮箱 [toowell2015@126.com](mailto:toowell2015@126.com) · QQ **3575554244** · X (Twitter) [@antmoch](https://x.com/antmoch)。这些是作者授权公开的使用支持信息。
 
 在已部署的新版页面中，无需自行部署或注册绘漫方舟账号：
 
