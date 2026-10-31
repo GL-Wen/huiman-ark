@@ -148,11 +148,11 @@ export const StoryScriptBoard: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-5 bg-gray-50/40">
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3 pb-6 content-start">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] justify-items-start gap-3 pb-6 content-start">
           {generatedScript.map((script, index) => (
             <div
               key={script.id}
-              className="bg-white border border-gray-200 rounded-md overflow-hidden flex flex-col h-[380px]"
+              className="w-full min-w-0 max-w-[300px] bg-white border border-gray-200 rounded-md overflow-hidden flex flex-col h-[380px]"
             >
               <div className="px-3 py-2 border-b border-gray-100 flex justify-between items-center">
                 <span className="text-xs font-semibold text-gray-700">
