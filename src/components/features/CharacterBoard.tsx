@@ -13,6 +13,7 @@ import {
   type CharacterReferenceMode,
 } from '../../api/llm';
 import { getAnimeStylePrompt } from '../../lib/animeStyles';
+import { getTextApiConfig } from '../../lib/textProviders.ts';
 
 const downloadImage = (url: string, filename: string) => {
   const link = document.createElement('a');
@@ -276,7 +277,7 @@ export const CharacterBoard: React.FC = () => {
 
   const handleRegenerateCharacterSheet = useCallback(
     async () => {
-      if (!apiKey.trim() && !hasDefaultApiKey) {
+      if ((!apiKey.trim() && !hasDefaultApiKey) || (!displayCharacterDesign && !getTextApiConfig(useAppStore.getState()).hasApiKey)) {
         openApiSettings();
         return;
       }

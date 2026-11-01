@@ -8,6 +8,7 @@ import { GET as publicConfig } from '../../app/api/ai/config/route.ts';
 import { POST as chat } from '../../app/api/ai/chat/route.ts';
 import { POST as image } from '../../app/api/ai/image/route.ts';
 import { isPublicAddress, readJsonBody } from './generation.ts';
+import { TEXT_PROVIDER_PRESETS } from '../textProviders.ts';
 import type { LookupAddress } from 'node:dns';
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aCLsAAAAASUVORK5CYII=';
@@ -119,6 +120,24 @@ test('chat uses caller fields before environment defaults', async () => {
   });
 });
 
+test('chat accepts service roots and versioned API base URLs without duplicating versions', async () => {
+  upstream = () => Response.json({ choices: [{ message: { content: 'OK' } }] });
+  for (const [baseUrl, expectedUrl] of [
+    ['https://provider.example', 'https://provider.example/v1/chat/completions'],
+    ['https://provider.example/custom/', 'https://provider.example/custom/v1/chat/completions'],
+    ['https://provider.example/v1/', 'https://provider.example/v1/chat/completions'],
+    ['https://ark.cn-beijing.volces.com/api/v3', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'],
+    ['https://ark.cn-beijing.volces.com/api/plan/v3/', 'https://ark.cn-beijing.volces.com/api/plan/v3/chat/completions'],
+    ['https://ark.cn-beijing.volces.com/api/coding/v3', 'https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions'],
+  ]) {
+    process.env.AI_API_BASE_URL = baseUrl;
+    const response = await chat(request({ prompt: 'Hi', systemPrompt: 'Write' }, null));
+    assert.equal(response.status, 200, baseUrl);
+    assert.deepEqual(await response.json(), { content: 'OK' });
+    assert.equal(calls[calls.length - 1].url, expectedUrl);
+  }
+});
+
 test('chat falls back to built-in defaults when deployment fields are blank', async () => {
   delete process.env.AI_API_BASE_URL;
   upstream = () => Response.json({ choices: [{ message: { content: 'Text' } }] });
@@ -131,16 +150,85 @@ test('chat falls back to built-in defaults when deployment fields are blank', as
   }
 });
 
-test('upstream errors, network failures and invalid responses produce a useful 502', async () => {
+test('text providers use their own endpoint, model and key without changing image defaults', async () => {
+  upstream = () => Response.json({ choices: [{ message: { content: 'OK' } }], data: [{ b64_json: png }] });
+  for (const [provider, preset] of Object.entries(TEXT_PROVIDER_PRESETS)) {
+    for (const fields of [{}, { baseUrl: ' ', model: ' ' }]) {
+      const response = await chat(request({ prompt: 'Hi', systemPrompt: 'Write', provider, ...fields }, `${provider}-key`));
+      assert.equal(response.status, 200, provider);
+      const call = calls[calls.length - 1];
+      assert.equal(call.url, `${preset.baseUrl}/chat/completions`);
+      assert.equal(new Headers(call.init?.headers).get('Authorization'), `Bearer ${provider}-key`);
+      const body = JSON.parse(String(call.init?.body));
+      assert.equal(body.model, preset.model);
+      assert.equal('temperature' in body, provider !== 'claude');
+    }
+  }
+  assert.equal((await image(request({ prompt: 'Draw', provider: 'claude' }, null))).status, 200);
+  assert.equal(calls[calls.length - 1].url, 'https://provider.example/v1/images/generations');
+  assert.equal(new Headers(calls[calls.length - 1].init?.headers).get('Authorization'), 'Bearer server-default-key');
+});
+
+test('named text providers never inherit the deployment key, including same-host Plan endpoints', async () => {
+  process.env.AI_API_BASE_URL = TEXT_PROVIDER_PRESETS.volcengine.baseUrl;
+  for (const provider of Object.keys(TEXT_PROVIDER_PRESETS)) {
+    for (const key of [null, ' ']) {
+      const response = await chat(request({ prompt: 'Hi', systemPrompt: 'Write', provider }, key));
+      assert.equal(response.status, 401);
+      assert.doesNotMatch(await response.text(), /server-default-key/);
+    }
+  }
+  assert.equal(calls.length, 0);
+});
+
+test('chat rejects unknown providers and invalid workspace IDs before fetching', async () => {
+  for (const provider of [null, false, 42, {}, [], '', '__proto__', 'constructor', 'unsupported']) {
+    assert.equal((await chat(request({ prompt: 'Hi', systemPrompt: 'Write', provider }))).status, 400);
+  }
+  for (const workspaceId of [null, 42, {}, 'a b', 'wrkspc_\r\nInjected', 'x'.repeat(201)]) {
+    assert.equal((await chat(request({ prompt: 'Hi', systemPrompt: 'Write', provider: 'claude', workspaceId }))).status, 400);
+  }
+  assert.equal((await chat(request({ prompt: 'Hi', systemPrompt: 'Write', provider: 'claude', baseUrl: 'https://127.0.0.1' }))).status, 400);
+  assert.equal(calls.length, 0);
+});
+
+test('Claude requests support workspace selection and omit incompatible sampling parameters', async () => {
+  upstream = () => Response.json({ choices: [{ message: { content: 'Claude text' } }] });
+  for (const fields of [
+    { model: 'claude-opus-5-5' }, { model: 'claude-sonnet-4-6' },
+    { provider: 'claude', model: 'custom-deployment-alias', workspaceId: 'wrkspc_example' },
+  ]) {
+    const response = await chat(request({ prompt: 'Hi', systemPrompt: 'Write', ...fields }));
+    assert.equal(response.status, 200);
+    const call = calls[calls.length - 1];
+    assert.equal('temperature' in JSON.parse(String(call.init?.body)), false);
+    assert.equal(new Headers(call.init?.headers).get('anthropic-workspace-id'), fields.workspaceId || null);
+  }
+});
+
+test('upstream authentication and rate-limit statuses remain actionable without leaking keys', async () => {
+  for (const status of [401, 403, 429]) {
+    upstream = () => Response.json({ error: { message: `Rejected user-key (${status})` } }, { status });
+    const response = await chat(request({ prompt: 'Hi', systemPrompt: 'Write', provider: 'aliyun' }));
+    assert.equal(response.status, status);
+    assert.match(await response.text(), /Rejected \[REDACTED\]/);
+  }
+});
+
+test('upstream errors, timeouts, network failures and invalid responses are handled', async () => {
   const payload = { prompt: 'Hi', systemPrompt: 'Write' };
   upstream = () => Response.json({ error: { message: 'Model unavailable' } }, { status: 429 });
   const rejected = await chat(request(payload));
-  assert.equal(rejected.status, 502);
+  assert.equal(rejected.status, 429);
   assert.match(await rejected.text(), /Model unavailable/);
   upstream = () => { throw new Error('network error with secret details'); };
   const disconnected = await chat(request(payload));
   assert.equal(disconnected.status, 502);
   assert.doesNotMatch(await disconnected.text(), /secret details|user-key/);
+  upstream = () => { throw new DOMException('sensitive timeout details', 'AbortError'); };
+  const timedOut = await chat(request(payload));
+  assert.equal(timedOut.status, 504);
+  assert.match(await timedOut.text(), /超时/);
   upstream = () => new Response('not json');
   assert.equal((await chat(request(payload))).status, 502);
   upstream = () => Response.json({ choices: [] });
@@ -151,7 +239,7 @@ test('both endpoints redact caller keys echoed by upstream errors', async () => 
   upstream = () => Response.json({ error: { message: 'Invalid key user-key; received user-key' } }, { status: 401 });
   for (const handler of [chat, image]) {
     const response = await handler(request({ prompt: 'Hi', systemPrompt: 'Write' }));
-    assert.equal(response.status, 502);
+    assert.equal(response.status, handler === chat ? 401 : 502);
     const body = await response.text();
     assert.doesNotMatch(body, /user-key|server-key/);
     assert.match(body, /Invalid key \[REDACTED\]; received \[REDACTED\]/);
@@ -185,6 +273,45 @@ test('image generation returns reusable Base64 PNG data without an asset account
   assert.deepEqual(JSON.parse(String(calls[0].init?.body)), {
     model: 'gpt-image-2', prompt: 'Draw a character', size: '1024x1536', n: 1, quality: 'high', output_format: 'png',
   });
+});
+
+test('Seedream 5.0 uses its native JSON API, 2K dimensions and explicit Base64 PNG output', async () => {
+  process.env.AI_API_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
+  upstream = () => Response.json({ data: [{ b64_json: png }] });
+  for (const model of ['doubao-seedream-5-0-pro-260628', 'doubao-seedream-5-0-flash-260915']) {
+    process.env.AI_IMAGE_MODEL = model;
+    for (const aspectRatio of ['16:9', '9:16']) {
+      const response = await image(request({ prompt: 'Draw', aspectRatio }, null));
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), { imageUrl: reference });
+      const call = calls[calls.length - 1];
+      assert.equal(call.url, 'https://ark.cn-beijing.volces.com/api/v3/images/generations');
+      assert.equal(new Headers(call.init?.headers).get('Authorization'), 'Bearer server-default-key');
+      assert.deepEqual(JSON.parse(String(call.init?.body)), {
+        model, prompt: 'Draw', size: aspectRatio === '9:16' ? '1584x2816' : '2816x1584',
+        response_format: 'b64_json', output_format: 'png', watermark: false,
+      });
+    }
+  }
+});
+
+test('Seedream reference edits share the generation endpoint and normalize local image MIME types', async () => {
+  process.env.AI_API_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
+  process.env.AI_IMAGE_MODEL = 'doubao-seedream-5-0-pro-260628';
+  upstream = () => Response.json({ data: [{ b64_json: png }] });
+  const references = [reference.replace('image/png', 'IMAGE/PNG'), reference.replace('image/png', 'image/jpg')];
+  const response = await image(request({
+    prompt: 'Draw both characters', referenceImages: references,
+    referenceLabels: ['Character A', 'Character B'], referenceInstruction: 'Keep identity',
+  }));
+  assert.equal(response.status, 200);
+  assert.equal(calls[0].url, 'https://ark.cn-beijing.volces.com/api/v3/images/generations');
+  const body = JSON.parse(String(calls[0].init?.body));
+  assert.equal(body.prompt, 'Keep identity\n\nCharacter A\n\nCharacter B\n\nDraw both characters');
+  assert.deepEqual(body.image, [reference, reference.replace('image/png', 'image/jpeg')]);
+  assert.equal('quality' in body, false);
+  assert.equal('n' in body, false);
+  assert.equal('sequential_image_generation' in body, false);
 });
 
 test('image edits accept local references and preserve their labels and instruction', async () => {
@@ -258,6 +385,145 @@ test('image errors reject missing, invalid and oversized output without fetching
   const response = await image(request({ prompt: 'Draw' }));
   assert.equal(response.status, 502);
   assert.match(await response.text(), /Image model unavailable/);
+});
+
+test('Bailian generates and edits with JSON and returns persistent PNG data without forwarding the key to OSS', async () => {
+  process.env.AI_IMAGE_MODEL = 'qwen-image-2.1-pro';
+  const resultUrl = 'https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/result.png?Expires=123&Signature=example';
+  upstream = () => calls[calls.length - 1].init?.method === 'GET'
+    ? new Response(Buffer.from(png, 'base64')) : Response.json({ output: { choices: [{ message: { content: [{ image: resultUrl }] } }] } });
+  for (const [baseUrl, referenceImages, aspectRatio] of [
+    ['https://dashscope.aliyuncs.com/compatible-mode/v1', [], '16:9'],
+    ['https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1', Array(6).fill(reference), '9:16'],
+  ] as const) {
+    process.env.AI_API_BASE_URL = baseUrl;
+    const response = await image(request({ prompt: 'Draw', referenceImages, aspectRatio, referenceLabels: ['Character A'] }, null));
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { imageUrl: reference });
+    const generation = calls[calls.length - 2];
+    const download = calls[calls.length - 1];
+    assert.equal(generation.url, `${new URL(baseUrl).origin}/api/v1/services/aigc/multimodal-generation/generation`);
+    assert.equal(new Headers(generation.init?.headers).get('Authorization'), 'Bearer server-default-key');
+    const body = JSON.parse(String(generation.init?.body));
+    assert.deepEqual(body, {
+      model: 'qwen-image-2.1-pro',
+      input: { messages: [{ role: 'user', content: [
+        ...referenceImages.map((value) => ({ image: value })),
+        { text: referenceImages.length ? 'Character A\n\nDraw' : 'Draw' },
+      ] }] },
+      parameters: { size: aspectRatio === '9:16' ? '864*1536' : '1536*864', n: 1 },
+    });
+    assert.equal(download.url, resultUrl);
+    assert.equal(download.init?.method, 'GET');
+    assert.equal(new Headers(download.init?.headers).get('Authorization'), null);
+    assert.ok(download.options.lookup);
+  }
+});
+
+test('Bailian applies native reference count, format and size limits before requesting images', async () => {
+  process.env.AI_API_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+  process.env.AI_IMAGE_MODEL = 'qwen-image-3.0-pro';
+  assert.equal((await image(request({ prompt: 'Draw', referenceImages: Array(4).fill(reference) }))).status, 400);
+  process.env.AI_IMAGE_MODEL = 'qwen-image-2.1-pro';
+  assert.equal((await image(request({ prompt: 'Draw', referenceImages: [reference.replace('image/png', 'image/heic')] }))).status, 400);
+  const oversized = `data:image/png;base64,${Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64')}`;
+  assert.equal((await image(request({ prompt: 'Draw', referenceImages: [oversized] }))).status, 413);
+  assert.equal(calls.length, 0);
+});
+
+test('Bailian result downloads reject untrusted URLs without making another request', async () => {
+  process.env.AI_API_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+  process.env.AI_IMAGE_MODEL = 'qwen-image-2.1-pro';
+  for (const url of [
+    'https://127.0.0.1/image.png', 'https://untrusted.example/image.png',
+    'https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com.evil.example/image.png',
+    'http://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/image.png',
+    'https://user:password@dashscope-result-bj.oss-cn-beijing.aliyuncs.com/image.png',
+    'https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com:8443/image.png',
+    'https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/image.png#fragment',
+    'invalid-url', { value: 'invalid' },
+  ]) {
+    upstream = () => Response.json({ output: { choices: [{ message: { content: [{ image: url }] } }] } });
+    const before = calls.length;
+    assert.equal((await image(request({ prompt: 'Draw' }))).status, 502);
+    assert.equal(calls.length, before + 1);
+  }
+  assert.equal(lookups.length, 0);
+});
+
+test('Bailian result URLs cannot reach private addresses or follow redirects', async () => {
+  process.env.AI_API_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+  process.env.AI_IMAGE_MODEL = 'qwen-image-2.1-pro';
+  const resultUrl = 'https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/result.png';
+  upstream = () => calls[calls.length - 1].init?.method === 'GET'
+    ? new Response('Redirecting', { status: 302, headers: { Location: 'https://127.0.0.1/private' } })
+    : Response.json({ output: { choices: [{ message: { content: [{ image: resultUrl }] } }] } });
+  dnsAnswers = [{ address: '127.0.0.1', family: 4 }];
+  assert.equal((await image(request({ prompt: 'Draw' }))).status, 502);
+  assert.equal(calls.length, 1);
+  dnsAnswers = [{ address: '93.184.216.34', family: 4 }];
+  assert.equal((await image(request({ prompt: 'Draw' }))).status, 502);
+  assert.equal(calls.length, 3);
+  assert.equal(new Headers(calls[2].init?.headers).get('Authorization'), null);
+});
+
+test('Bailian downloads reject failed responses, non-PNG data and oversized images', async () => {
+  process.env.AI_API_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+  process.env.AI_IMAGE_MODEL = 'qwen-image-2.1-pro';
+  const oversized = Buffer.alloc(25 * 1024 * 1024 + 1);
+  Buffer.from(png, 'base64').copy(oversized);
+  for (const result of [new Response('Expired', { status: 403 }), new Response('<svg/>'), new Response(oversized)]) {
+    upstream = () => calls[calls.length - 1].init?.method === 'GET'
+      ? result : Response.json({ output: { choices: [{ message: { content: [{ image: 'https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/result.png' }] } }] } });
+    assert.equal((await image(request({ prompt: 'Draw' }))).status, 502);
+  }
+});
+
+test('Bailian Fake-IP DNS uses verified public DoH answers and pins the real address', async () => {
+  process.env.AI_API_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+  process.env.AI_IMAGE_MODEL = 'qwen-image-2.1-pro';
+  dnsAnswers = [{ address: '198.18.0.5', family: 4 }];
+  const resolutions: Array<{ url: string; init: RequestInit }> = [];
+  mock.method(globalThis, 'fetch', async (url: string, init: RequestInit) => {
+    resolutions.push({ url, init });
+    return Response.json({ Status: 0, Answer: [{ type: 1, data: '93.184.216.34' }] });
+  });
+  upstream = () => calls[calls.length - 1].init?.method === 'GET'
+    ? new Response(Buffer.from(png, 'base64'))
+    : Response.json({ output: { choices: [{ message: { content: [{ image: 'https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/result.png' }] } }] } });
+  assert.equal((await image(request({ prompt: 'Draw' }))).status, 200);
+  assert.equal(resolutions.length, 1);
+  assert.equal(new URL(resolutions[0].url).hostname, 'dns.alidns.com');
+  assert.equal(new URL(resolutions[0].url).searchParams.get('name'), 'dashscope-result-bj.oss-cn-beijing.aliyuncs.com');
+  assert.equal(resolutions[0].init.redirect, 'error');
+  assert.equal(new Headers(resolutions[0].init.headers).get('Authorization'), null);
+  const lookup = calls[1].options.lookup as (hostname: string, options: object, callback: (error: Error | null, address: string, family: number) => void) => void;
+  lookup('dashscope-result-bj.oss-cn-beijing.aliyuncs.com', {}, (error, address, family) => {
+    assert.equal(error, null);
+    assert.equal(address, '93.184.216.34');
+    assert.equal(family, 4);
+  });
+});
+
+test('Bailian Fake-IP fallback rejects private or malformed DoH answers', async () => {
+  process.env.AI_API_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+  process.env.AI_IMAGE_MODEL = 'qwen-image-2.1-pro';
+  dnsAnswers = [{ address: '198.18.0.5', family: 4 }];
+  let answer: unknown;
+  mock.method(globalThis, 'fetch', async () => Response.json(answer));
+  upstream = () => Response.json({ output: { choices: [{ message: { content: [{ image: 'https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/result.png' }] } }] } });
+  for (const data of [
+    { Status: 0, Answer: [{ type: 1, data: '127.0.0.1' }] },
+    { Status: 0, Answer: [{ type: 1, data: '198.18.1.1' }] },
+    { Status: 0, Answer: [{ type: 1, data: 42 }] },
+    { Status: 0, Answer: [{ type: 1, data: '93.184.216.34' }, { type: 1, data: '10.0.0.1' }] },
+    { Status: 0, Answer: [] }, { Status: 3, Answer: [] }, [],
+  ]) {
+    answer = data;
+    const before = calls.length;
+    assert.equal((await image(request({ prompt: 'Draw' }))).status, 502);
+    assert.equal(calls.length, before + 1);
+  }
 });
 
 test('request size limits work without trusting content-length', async () => {
@@ -449,7 +715,7 @@ test('both endpoints redact the actual inherited environment key from upstream e
   upstream = () => Response.json({ error: { message: 'Invalid server-default-key; key server-default-key' } }, { status: 401 });
   for (const handler of [chat, image]) {
     const response = await handler(request({ prompt: 'Hi', systemPrompt: 'Write' }, null));
-    assert.equal(response.status, 502);
+    assert.equal(response.status, handler === chat ? 401 : 502);
     const body = await response.text();
     assert.doesNotMatch(body, /server-default-key/);
     assert.match(body, /\[REDACTED\]/);

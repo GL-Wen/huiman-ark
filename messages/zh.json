@@ -50,7 +50,7 @@
     "freeSoftware": "免费开源",
     "apiSettings": "API 设置",
     "apiConfigured": "API 已就绪",
-    "apiDescription": "请求地址、文本模型、图像模型和 API Key 均可单独配置。每项留空使用部署默认值，填写的内容优先生效。",
+    "apiDescription": "选择文本平台后，可分别配置地址、模型和 Key。默认/自定义中的空白项使用部署默认值。",
     "apiKeyPlaceholder": "留空使用服务端默认 Key",
     "apiKeyPrivacy": "请求地址和模型偏好保存在本机。你填写的 API Key 仅保存在当前页面内存中，刷新后清空；生成时经本站服务器转发至所选 AI 接口，请仅在可信部署中使用。",
     "saveApiKey": "保存并继续",
@@ -76,7 +76,22 @@
     "defaultsFailed": "未能读取部署默认配置。可填写自己的请求地址、模型和 Key 后继续。",
     "defaultKeyAvailable": "服务端已配置默认 Key，API Key 留空即可使用。",
     "defaultKeyMissing": "服务端未配置默认 Key，请填写自己的 API Key 后生成。",
-    "providerKeyHint": "更换服务商时请填写自己的 API Key；服务端默认 Key 仅用于默认服务地址。"
+    "providerKeyHint": "更换服务商时请填写自己的 API Key；服务端默认 Key 仅用于默认服务地址。",
+    "textProvider": "文本平台",
+    "providers": {
+      "default": "默认 / 自定义",
+      "volcengine": "火山方舟 · 普通 API",
+      "volcengine-agent": "火山方舟 · Agent Plan",
+      "volcengine-coding": "火山方舟 · Coding Plan",
+      "aliyun": "阿里百炼 · 普通 API",
+      "aliyun-coding": "阿里百炼 · Coding Plan",
+      "claude": "Claude · 官方 API"
+    },
+    "textProviderHint": "切换平台会同时切换文本地址、模型和 Key。图像仍使用“默认 / 自定义”中的地址和 Key。",
+    "textProviderKeyPlaceholder": "填写此平台的 API Key，刷新后需重新填写",
+    "textProviderKeyHint": "此平台使用独立 Key，不会使用部署默认 Key；请确认 Key、地域、模型和套餐入口匹配。",
+    "workspaceId": "Claude Workspace ID（可选）",
+    "workspaceIdHint": "未绑定工作空间的个人或服务账号 Key 需要填写；已绑定的 Key 可留空。"
   },
   "EmptyCanvas": {
     "brand": "绘漫方舟",

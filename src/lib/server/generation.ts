@@ -4,6 +4,7 @@ import https from 'node:https';
 import { BlockList, isIP } from 'node:net';
 import { Readable } from 'node:stream';
 import type { ReadableStream } from 'node:stream/web';
+import { TEXT_PROVIDER_PRESETS, type TextProvider } from '../textProviders.ts';
 
 export class GenerationHttpError extends Error {
   status: number;
@@ -46,22 +47,27 @@ const override = (value: unknown, label: string) => {
 };
 
 export const getAiConfig = (request: Request, body: Record<string, unknown>, kind: 'text' | 'image') => {
+  const provider = kind === 'text' ? body.provider : undefined;
+  if (provider !== undefined && provider !== 'default' && (typeof provider !== 'string' || !Object.keys(TEXT_PROVIDER_PRESETS).includes(provider))) {
+    throw new GenerationHttpError('不支持的文本平台', 400);
+  }
+  const preset = provider && provider !== 'default' ? TEXT_PROVIDER_PRESETS[provider as Exclude<TextProvider, 'default'>] : undefined;
   const customBaseUrl = override(body.baseUrl, 'AI 接口地址');
   const customModel = override(body.model, '模型名称');
-  const defaultModel = kind === 'text' ? process.env.AI_TEXT_MODEL?.trim() || 'claude-opus-5-5' : process.env.AI_IMAGE_MODEL?.trim() || 'gpt-image-2';
+  const defaultModel = kind === 'text' ? preset?.model || process.env.AI_TEXT_MODEL?.trim() || 'claude-opus-5-5' : process.env.AI_IMAGE_MODEL?.trim() || 'gpt-image-2';
   const model = modelName(customModel || defaultModel, customModel ? 400 : 503);
   const authorization = request.headers.get('authorization')?.trim() || '';
   const match = authorization.match(/^Bearer(?:[ \t]+(\S+))?$/i);
   if (authorization && !match) throw new GenerationHttpError('API Key 请求头格式不正确', 400);
   const userApiKey = match?.[1] || '';
-  const apiKey = userApiKey || process.env.AI_API_KEY?.trim() || '';
-  if (!apiKey) throw new GenerationHttpError('请在设置或部署环境中填写 AI API Key', 401);
+  const apiKey = userApiKey || (preset ? '' : process.env.AI_API_KEY?.trim()) || '';
+  if (!apiKey) throw new GenerationHttpError(preset ? '请为所选文本平台填写自己的 API Key' : '请在设置或部署环境中填写 AI API Key', 401);
   if (apiKey.length > 4096 || !/^[\x21-\x7e]+$/.test(apiKey)) {
     throw new GenerationHttpError('API Key 格式不正确', userApiKey ? 400 : 503);
   }
   let defaultBaseUrl: string | undefined;
   try {
-    defaultBaseUrl = parseBaseUrl(process.env.AI_API_BASE_URL?.trim() || 'https://api.antmoo.cc', 503);
+    defaultBaseUrl = parseBaseUrl(preset?.baseUrl || process.env.AI_API_BASE_URL?.trim() || 'https://api.antmoo.cc', 503);
   } catch (error) {
     if (!customBaseUrl || !userApiKey) throw error;
   }
@@ -76,7 +82,7 @@ export const getAiConfig = (request: Request, body: Record<string, unknown>, kin
   return { apiKey, baseUrl, model, userProvidedBaseUrl };
 };
 
-export const readJsonBody = async (request: Request, maxBytes: number): Promise<Record<string, unknown>> => {
+export const readJsonBody = async (request: Request | Response, maxBytes: number): Promise<Record<string, unknown>> => {
   if (Number(request.headers.get('content-length')) > maxBytes) {
     throw new GenerationHttpError('请求内容过大', 413);
   }
@@ -128,6 +134,8 @@ export const isPublicAddress = (address: string) => {
   return family === 6 && !address.includes('%') && globalIpv6.check(address, 'ipv6') && !reservedIpv6.check(address, 'ipv6');
 };
 
+export const isBailianResultHost = (hostname: string) => /^dashscope-[a-z0-9-]+\.oss-[a-z0-9-]+\.aliyuncs\.com$/i.test(hostname);
+
 const publicAddress = async (url: URL) => {
   const hostname = url.hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '');
   if (hostname === 'localhost' || /\.(?:localhost|local|internal|home\.arpa)\.?$/i.test(hostname)) {
@@ -149,6 +157,24 @@ const publicAddress = async (url: URL) => {
       if (timer) clearTimeout(timer);
     }
   }
+  if (isBailianResultHost(hostname) && addresses.length && addresses.every(({ address, family }) =>
+    family === 4 && isIP(address) === 4 && /^198\.(?:18|19)\./.test(address))) {
+    // Fake-IP proxies require real DNS answers before a public address can be pinned.
+    try {
+      const response = await fetch(`https://dns.alidns.com/resolve?name=${encodeURIComponent(hostname)}&type=A`, {
+        signal: AbortSignal.timeout(10_000), redirect: 'error',
+      });
+      if (!response.ok) throw new Error('DNS lookup failed');
+      const data = await readJsonBody(response, 64 * 1024);
+      if (data.Status !== 0 || !Array.isArray(data.Answer)) throw new Error('Invalid DNS response');
+      addresses = data.Answer.filter((answer) => answer?.type === 1).map((answer) => {
+        if (typeof answer.data !== 'string' || isIP(answer.data) !== 4) throw new Error('Invalid DNS address');
+        return { address: answer.data, family: 4 };
+      });
+    } catch {
+      throw new GenerationHttpError('无法解析百炼图片的真实公网地址', 400);
+    }
+  }
   if (!addresses.length || addresses.some(({ address, family }) => !isPublicAddress(address) || isIP(address) !== family)) {
     throw new GenerationHttpError('自定义 AI 接口不能访问内网、环回或保留地址', 400);
   }
@@ -157,10 +183,11 @@ const publicAddress = async (url: URL) => {
 
 export const requestAi = async (config: ReturnType<typeof getAiConfig>, path: string, init: RequestInit) => {
   try {
-    const url = new URL(`${config.baseUrl}${path}`);
+    const apiPath = /\/v\d+$/.test(config.baseUrl) ? path.replace(/^\/v1\//, '/') : path;
+    const url = new URL(`${config.baseUrl}${apiPath}`);
     const address = config.userProvidedBaseUrl ? await publicAddress(url) : undefined;
     const headers = new Headers(init.headers);
-    headers.set('Authorization', `Bearer ${config.apiKey}`);
+    if (config.apiKey) headers.set('Authorization', `Bearer ${config.apiKey}`);
     headers.set('Accept-Encoding', 'identity');
     const serialized = new Request(url, { method: init.method || 'POST', headers, body: init.body });
     return await new Promise<Response>((resolve, reject) => {
@@ -214,6 +241,9 @@ export const requestAi = async (config: ReturnType<typeof getAiConfig>, path: st
     });
   } catch (error) {
     if (error instanceof GenerationHttpError) throw error;
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new GenerationHttpError('AI 服务响应超时，请稍后重试', 504);
+    }
     throw new GenerationHttpError('无法连接 AI 服务，请检查接口配置或稍后重试', 502);
   }
 };

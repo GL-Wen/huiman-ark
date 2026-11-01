@@ -50,7 +50,7 @@
     "freeSoftware": "無料・オープンソース",
     "apiSettings": "API 設定",
     "apiConfigured": "API 利用可能",
-    "apiDescription": "接続先、テキストモデル、画像モデル、API Key を個別に設定できます。空欄はこの環境の既定値を使用し、入力した値を優先します。",
+    "apiDescription": "テキストサービスを選択し、接続先・モデル・Key を個別に設定できます。「既定 / カスタム」の空欄は環境の既定値を使用します。",
     "apiKeyPlaceholder": "空欄でサーバーの既定 Key を使用",
     "apiKeyPrivacy": "接続先とモデルの設定はこの端末に保存されます。入力した API Key はページのメモリ内だけに保持され、再読み込みで消去されます。生成時はこのサーバーから選択した AI サービスへ転送されるため、信頼できる環境でご利用ください。",
     "saveApiKey": "保存して続ける",
@@ -76,7 +76,22 @@
     "defaultsFailed": "環境の既定設定を取得できませんでした。ご自身の接続先、モデル、Key を入力して続けられます。",
     "defaultKeyAvailable": "サーバーに既定の Key が設定されています。API Key は空欄で利用できます。",
     "defaultKeyMissing": "サーバーに既定の Key がありません。生成前にご自身の API Key を入力してください。",
-    "providerKeyHint": "別のサービスを利用する場合はご自身の API Key を入力してください。サーバーの既定 Key は既定の接続先でのみ使用されます。"
+    "providerKeyHint": "別のサービスを利用する場合はご自身の API Key を入力してください。サーバーの既定 Key は既定の接続先でのみ使用されます。",
+    "textProvider": "テキストサービス",
+    "providers": {
+      "default": "既定 / カスタム",
+      "volcengine": "Volcengine Ark · 通常 API",
+      "volcengine-agent": "Volcengine Ark · Agent Plan",
+      "volcengine-coding": "Volcengine Ark · Coding Plan",
+      "aliyun": "Alibaba Cloud · 通常 API",
+      "aliyun-coding": "Alibaba Cloud · Coding Plan",
+      "claude": "Claude · 公式 API"
+    },
+    "textProviderHint": "切り替えるとテキストの接続先・モデル・Key が一緒に切り替わります。画像は「既定 / カスタム」の接続先と Key を使用します。",
+    "textProviderKeyPlaceholder": "このサービスの API Key を入力（再読み込みで消去）",
+    "textProviderKeyHint": "環境の既定 Key は使わず、専用の Key が必要です。Key・リージョン・モデル・プランの接続先を一致させてください。",
+    "workspaceId": "Claude Workspace ID（任意）",
+    "workspaceIdHint": "ワークスペース未指定の個人・サービスアカウント Key では必須です。指定済みの Key では空欄にできます。"
   },
   "EmptyCanvas": {
     "brand": "Huiman Ark",

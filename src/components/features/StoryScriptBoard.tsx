@@ -8,6 +8,7 @@ import {
 } from '../../api/llm';
 import { Users, FastForward, PlaySquare } from 'lucide-react';
 import { getAnimeStylePrompt } from '../../lib/animeStyles';
+import { getTextApiConfig } from '../../lib/textProviders.ts';
 
 const getSegmentDisplayContent = (raw: string) => sanitizeStorySegmentText(raw);
 const normalizeSegments = <T extends { title: string; raw: string }>(
@@ -53,7 +54,7 @@ export const StoryScriptBoard: React.FC = () => {
   }, [generatedScript, getDefaultTitle, setGeneratedScript]);
 
   const handleGenerateCharacters = async () => {
-    if (!apiKey.trim() && !hasDefaultApiKey) {
+    if ((!apiKey.trim() && !hasDefaultApiKey) || !getTextApiConfig(useAppStore.getState()).hasApiKey) {
       openApiSettings();
       return;
     }

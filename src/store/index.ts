@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { createTextProviderConfigs, TEXT_PROVIDER_PRESETS, type TextProvider, type TextProviderConfigs } from '../lib/textProviders.ts';
 
 export type Step =
   | 'initial'
@@ -32,6 +33,9 @@ export interface AiDefaultConfig {
 }
 
 interface AppState {
+  textProvider: TextProvider;
+  textProviderConfigs: TextProviderConfigs;
+  setTextApiSettings: (provider: TextProvider, configs: TextProviderConfigs) => void;
   apiKey: string;
   setApiKey: (key: string) => void;
   apiBaseUrl: string;
@@ -99,6 +103,9 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
+      textProvider: 'default',
+      textProviderConfigs: createTextProviderConfigs(),
+      setTextApiSettings: (textProvider, textProviderConfigs) => set({ textProvider, textProviderConfigs }),
       apiKey: '',
       setApiKey: (key) => set({ apiKey: key }),
       apiBaseUrl: '',
@@ -117,7 +124,10 @@ export const useAppStore = create<AppState>()(
         defaultImageModel: config.imageModel,
         hasDefaultApiKey: config.hasApiKey,
       }),
-      resetApiOverrides: () => set({ apiBaseUrl: '', textModel: '', imageModel: '', apiKey: '' }),
+      resetApiOverrides: () => set({
+        apiBaseUrl: '', textModel: '', imageModel: '', apiKey: '',
+        textProvider: 'default', textProviderConfigs: createTextProviderConfigs(),
+      }),
       isApiSettingsOpen: false,
       openApiSettings: () => set({ isApiSettingsOpen: true }),
       closeApiSettings: () => set({ isApiSettingsOpen: false }),
@@ -196,8 +206,17 @@ export const useAppStore = create<AppState>()(
       // Restore only current preferences; ignore saved credentials and obsolete settings.
       merge: (persistedState, currentState) => {
         const saved = persistedState as Partial<AppState> | undefined;
+        const textProviderConfigs = createTextProviderConfigs();
+        for (const provider of Object.keys(TEXT_PROVIDER_PRESETS) as Array<keyof TextProviderConfigs>) {
+          const config = saved?.textProviderConfigs?.[provider];
+          for (const field of ['baseUrl', 'model', 'workspaceId'] as const) {
+            if (typeof config?.[field] === 'string') textProviderConfigs[provider][field] = config[field];
+          }
+        }
         return {
           ...currentState,
+          textProvider: saved?.textProvider && Object.keys(TEXT_PROVIDER_PRESETS).includes(saved.textProvider) ? saved.textProvider : 'default',
+          textProviderConfigs,
           apiBaseUrl: typeof saved?.apiBaseUrl === 'string' ? saved.apiBaseUrl : '',
           textModel: typeof saved?.textModel === 'string' ? saved.textModel : '',
           imageModel: typeof saved?.imageModel === 'string' ? saved.imageModel : '',
@@ -212,6 +231,10 @@ export const useAppStore = create<AppState>()(
         };
       },
       partialize: (state) => ({
+        textProvider: state.textProvider,
+        textProviderConfigs: Object.fromEntries(Object.entries(state.textProviderConfigs).map(([provider, config]) => [provider, {
+          baseUrl: config.baseUrl, model: config.model, workspaceId: config.workspaceId,
+        }])),
         apiBaseUrl: state.apiBaseUrl,
         textModel: state.textModel,
         imageModel: state.imageModel,

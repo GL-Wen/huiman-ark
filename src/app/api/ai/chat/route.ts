@@ -22,11 +22,16 @@ export async function POST(request: Request) {
     if (prompt.length > 120_000 || systemPrompt.length > 40_000) {
       throw new GenerationHttpError('文本内容过长，请缩短后重试', 413);
     }
+    const workspaceId = body.workspaceId === undefined ? '' : body.workspaceId;
+    if (typeof workspaceId !== 'string' || (workspaceId && !/^[a-zA-Z0-9_-]{1,200}$/.test(workspaceId))) {
+      throw new GenerationHttpError('Claude Workspace ID 格式不正确', 400);
+    }
     const upstream = await requestAi(config, '/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
+        ...(workspaceId ? { 'anthropic-workspace-id': workspaceId } : {}),
       },
       body: JSON.stringify({
         model,
@@ -34,12 +39,13 @@ export async function POST(request: Request) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt },
         ],
-        temperature: 0.7,
+        ...(!/^claude(?:[-.]|$)/i.test(model) && body.provider !== 'claude' ? { temperature: 0.7 } : {}),
       }),
     });
 
     if (!upstream.ok) {
-      throw new GenerationHttpError((await upstreamError(upstream, apiKey)) || `上游请求失败：${upstream.status}`, 502);
+      const status = [401, 403, 429].includes(upstream.status) ? upstream.status : 502;
+      throw new GenerationHttpError((await upstreamError(upstream, apiKey)) || `上游请求失败：${upstream.status}`, status);
     }
     const data = await readAiResponse(upstream);
     const content = data?.choices?.[0]?.message?.content;

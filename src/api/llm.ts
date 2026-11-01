@@ -46,6 +46,7 @@ export const CHARACTER_DESIGNER_PROMPT = `你是一个专业的动漫角色设�
 - 直接输出角色设定，不要添加额外解释`;
 
 import { useAppStore, type ScriptSegment } from '../store/index.ts';
+import { getTextApiConfig } from '../lib/textProviders.ts';
 
 type AspectRatio = '16:9' | '9:16';
 
@@ -859,18 +860,22 @@ export const generateContent = async (
   prompt: string,
   systemPrompt: string,
 ): Promise<string> => {
-  const { apiBaseUrl, textModel } = useAppStore.getState();
+  const state = useAppStore.getState();
+  const config = getTextApiConfig(state, apiKey);
+  if (state.textProvider !== 'default' && !config.hasApiKey) throw new Error('请为所选文本平台填写自己的 API Key');
   const response = await fetch('/api/ai/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(apiKey.trim() ? { Authorization: `Bearer ${apiKey.trim()}` } : {}),
+      ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
     },
     body: JSON.stringify({
       prompt,
       systemPrompt,
-      baseUrl: apiBaseUrl.trim() || undefined,
-      model: textModel.trim() || undefined,
+      baseUrl: config.baseUrl || undefined,
+      model: config.model || undefined,
+      provider: state.textProvider !== 'default' ? state.textProvider : undefined,
+      workspaceId: config.workspaceId || undefined,
     }),
   });
 

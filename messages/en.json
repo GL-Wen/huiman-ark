@@ -50,7 +50,7 @@
     "freeSoftware": "Free & open source",
     "apiSettings": "API settings",
     "apiConfigured": "API ready",
-    "apiDescription": "Set the API address, text model, image model, or API key individually. Leave any field blank to inherit its deployment default; your values take priority.",
+    "apiDescription": "Choose a text provider, then configure its address, model, and key. Blank fields under Default / Custom inherit deployment defaults.",
     "apiKeyPlaceholder": "Leave blank to use the server default key",
     "apiKeyPrivacy": "The API address and model preferences are saved on this device. Your API key stays in page memory and is cleared on reload. Generation passes through this server to the selected AI provider; use a deployment you trust.",
     "saveApiKey": "Save & continue",
@@ -76,7 +76,22 @@
     "defaultsFailed": "Could not load deployment defaults. You can enter your own API address, models, and key to continue.",
     "defaultKeyAvailable": "A server default key is configured. Leave API Key blank to use it.",
     "defaultKeyMissing": "No server default key is configured. Enter your own API key before generating.",
-    "providerKeyHint": "Enter your own API key when switching providers. The server default key is used only with the default provider address."
+    "providerKeyHint": "Enter your own API key when switching providers. The server default key is used only with the default provider address.",
+    "textProvider": "Text provider",
+    "providers": {
+      "default": "Default / Custom",
+      "volcengine": "Volcengine Ark · Standard API",
+      "volcengine-agent": "Volcengine Ark · Agent Plan",
+      "volcengine-coding": "Volcengine Ark · Coding Plan",
+      "aliyun": "Alibaba Cloud · Standard API",
+      "aliyun-coding": "Alibaba Cloud · Coding Plan",
+      "claude": "Claude · Official API"
+    },
+    "textProviderHint": "Switching providers switches the text address, model, and key together. Images still use the address and key under Default / Custom.",
+    "textProviderKeyPlaceholder": "Enter this provider’s API key; re-enter after reload",
+    "textProviderKeyHint": "This provider needs its own key and never uses the deployment key. Match the key, region, model, and plan endpoint.",
+    "workspaceId": "Claude Workspace ID (optional)",
+    "workspaceIdHint": "Required for personal or service account keys without a workspace scope. Leave blank for workspace-scoped keys."
   },
   "EmptyCanvas": {
     "brand": "Huiman Ark",

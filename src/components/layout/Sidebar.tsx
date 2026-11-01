@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type AppLocale } from '@/i18n/routing';
 import { useAppStore, type ScriptSegment } from '../../store';
+import { getTextApiConfig } from '../../lib/textProviders.ts';
 import { Sparkles, ChevronDown, ChevronUp, Image as ImageIcon, Rows3, Trash2, Globe, Palette, Monitor, Grid2x2, Pencil } from 'lucide-react';
 import {
   buildStoryOutputInstruction,
@@ -149,7 +150,6 @@ export const Sidebar: React.FC = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const {
     apiKey,
-    hasDefaultApiKey,
     openApiSettings,
     storyInput,
     setStoryInput,
@@ -277,7 +277,7 @@ export const Sidebar: React.FC = () => {
   };
 
   const handleGenerateStory = async () => {
-    if (!apiKey.trim() && !hasDefaultApiKey) {
+    if (!getTextApiConfig(useAppStore.getState()).hasApiKey) {
       openApiSettings();
       return;
     }

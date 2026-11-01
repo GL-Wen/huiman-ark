@@ -44,6 +44,39 @@ test('browser requests carry user overrides and omit empty fields for server def
       assert.equal('baseUrl' in call.body, false);
       assert.equal('model' in call.body, false);
     }
+
+    const { createTextProviderConfigs, getTextApiConfig } = await import('../lib/textProviders.ts');
+    const configs = createTextProviderConfigs();
+    for (const [provider, config] of Object.entries(configs)) {
+      config.apiKey = `${provider}-key`;
+      if (provider === 'claude') config.workspaceId = 'wrkspc_browser';
+    }
+    useAppStore.getState().setApiBaseUrl('https://image-provider.example');
+    useAppStore.getState().setApiKey('image-provider-key');
+    useAppStore.getState().setImageModel('image-only-model');
+    for (const provider of Object.keys(configs) as Array<keyof typeof configs>) {
+      useAppStore.getState().setTextApiSettings(provider, configs);
+      await generateContent('image-provider-key', 'Story prompt', 'Write');
+      const call = calls[calls.length - 1];
+      assert.equal(call.headers.get('Authorization'), `Bearer ${provider}-key`);
+      assert.equal(call.body.baseUrl, configs[provider].baseUrl);
+      assert.equal(call.body.model, configs[provider].model);
+      assert.equal(call.body.provider, provider);
+      assert.equal(call.body.workspaceId, provider === 'claude' ? 'wrkspc_browser' : undefined);
+    }
+    await generateImage('image-provider-key', 'Draw');
+    const imageCall = calls[calls.length - 1];
+    assert.equal(imageCall.body.baseUrl, 'https://image-provider.example');
+    assert.equal(imageCall.body.model, 'image-only-model');
+    assert.equal(imageCall.headers.get('Authorization'), 'Bearer image-provider-key');
+    assert.equal('provider' in imageCall.body, false);
+
+    useAppStore.getState().setTextApiSettings('claude', createTextProviderConfigs());
+    useAppStore.getState().setAiDefaults({ baseUrl: 'https://server.example', textModel: 'server-text', imageModel: 'server-image', hasApiKey: true });
+    assert.equal(getTextApiConfig(useAppStore.getState()).hasApiKey, false);
+    const callCount = calls.length;
+    await assert.rejects(generateContent('image-provider-key', 'Story prompt', 'Write'), /API Key/);
+    assert.equal(calls.length, callCount);
   } finally {
     mock.restoreAll();
     Reflect.deleteProperty(globalThis, 'window');

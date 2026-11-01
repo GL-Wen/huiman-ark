@@ -74,7 +74,11 @@ AI_API_KEY=
 
 Each setting resolves in this order: non-empty user value, non-empty environment value, then built-in default. The Key has no built-in value. When a deployment provides a default Key, visitors who leave it empty use the deployment operator's API allowance. Switching to another origin requires the user's own Key; the default Key is never forwarded to another origin.
 
-Use the service root URL without `/v1`; user overrides to a different URL must use public HTTPS. Compatible providers must offer the configured models, support `chat/completions`, `images/generations`, and `images/edits`, and return Base64 images through `b64_json`. Providers that only return remote image URLs are not supported.
+The Text provider selector offers Volcengine Ark, Alibaba Cloud Model Studio, and the official Claude API, with separate profiles for standard APIs and Plans. Each profile keeps its own address, model, and in-memory key. Named providers require their own key and never inherit the deployment key. Reloading clears every entered key while retaining address and model preferences. Claude uses its official OpenAI-compatible endpoint and supports an optional Workspace ID.
+
+Image generation continues to use the address, key, and image model under Default / Custom. Switching text providers does not overwrite image API settings.
+
+Use the service root URL or an API base URL ending in a version such as `/v1` or `/v3` (for example, Volcengine Ark's `/api/v3`); the version is not added twice. User overrides to a different URL must use public HTTPS. Compatible providers must offer the configured models, support `chat/completions`, `images/generations`, and `images/edits`, and return Base64 images through `b64_json`. Volcengine Seedream 5.0 Pro / Flash uses JSON for both generation and reference edits and returns Base64 PNG data. Alibaba Cloud Qwen Image 2.1 / 3.0 has a dedicated adapter: references are sent as JSON, and validated official OSS results are downloaded and converted to Base64. Other providers that only return remote image URLs remain unsupported.
 
 See the [deployment guide](./docs/deployment.md) for production commands and configuration.
 

@@ -74,7 +74,11 @@ AI_API_KEY=
 
 每项按“用户填写的非空值 → 环境变量非空值 → 内置默认值”生效；Key 没有内置值。若部署者配置了默认 Key，访客留空即使用部署者的接口额度。更换为不同 origin 的接口时必须填写自己的 Key，服务器不会把默认 Key 转发到其他 origin。
 
-地址填写服务根地址，不添加 `/v1`；用户改用不同地址时仅支持公网 HTTPS。兼容服务需提供所配置模型，支持文本 `chat/completions`、图像 `images/generations` 和 `images/edits` 接口，并返回 Base64 图像（`b64_json`）；仅返回远程图片 URL 的服务不受支持。
+API 设置中的“文本平台”提供火山方舟、阿里百炼和 Claude 官方接口，普通 API 与 Plan 分别配置；各平台独立保存地址、模型和当前页面的 Key。选择具体平台时必须填写该平台自己的 Key，不会继承部署 Key。刷新后所有填写的 Key 清空，地址和模型偏好保留。Claude 使用官方 OpenAI 兼容入口，可选填 Workspace ID。
+
+图像生成继续使用“默认 / 自定义”中的地址、Key 和图像模型，切换文本平台不会覆盖图像接口配置。
+
+地址可填写服务根地址，或以 `/v1`、`/v3` 等版本号结尾的 API 基础地址（例如火山方舟的 `/api/v3`），版本号不会重复添加；用户改用不同地址时仅支持公网 HTTPS。兼容服务需提供所配置模型，支持文本 `chat/completions`、图像 `images/generations` 和 `images/edits` 接口，并返回 Base64 图像（`b64_json`）。火山 Seedream 5.0 Pro / Flash 通过 JSON 统一生成和参考图编辑，返回 Base64 PNG。百炼千问图像 2.1 / 3.0 使用独立适配：参考图通过 JSON 发送，返回的官方 OSS 图片经校验后下载并转为 Base64；其他服务仅返回远程图片 URL 时仍不受支持。
 
 生产运行与完整配置见 [部署指南](./docs/deployment.md)。
 
