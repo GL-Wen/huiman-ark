@@ -23,7 +23,7 @@ export const Footer: React.FC = () => {
           <a href={`mailto:${AUTHOR_CONTACT.email}`} className="block break-all hover:text-gray-800">{AUTHOR_CONTACT.email}</a>
         </div>
         <div className="flex flex-col gap-2 text-sm text-gray-500">
-          <a href={APP_LINKS.online} target="_blank" rel="noreferrer" className="hover:text-gray-800">{t('onlineLegacy')}</a>
+          <a href={APP_LINKS.online} target="_blank" rel="noreferrer" className="hover:text-gray-800">{t('online')}</a>
           <a href={APP_LINKS.apiPortal} target="_blank" rel="noreferrer" className="hover:text-gray-800">{tFooter('apiPortal')}</a>
           <a href={APP_LINKS.github} target="_blank" rel="noreferrer" className="hover:text-gray-800">GitHub</a>
         </div>

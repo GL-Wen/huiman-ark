@@ -346,8 +346,8 @@ export const Header: React.FC = () => {
                   </dl>
                 </section>
                 <div className="border-t border-gray-100 pt-3 text-xs leading-5 text-gray-500">
-                  <a href={APP_LINKS.online} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">{t('onlineLegacy')}</a>
-                  <p>{t('onlineLegacyHint')}</p>
+                  <a href={APP_LINKS.online} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">{t('online')}</a>
+                  <p>{t('onlineHint')}</p>
                 </div>
               </div>
             )}

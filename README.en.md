@@ -6,8 +6,8 @@
 <p align="center">
   <a href="https://github.com/GL-Wen/huiman-ark"><img src="https://img.shields.io/github/stars/GL-Wen/huiman-ark?style=social" alt="GitHub Repo stars" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js" alt="Next.js" /></a>
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0-blue?style=flat&logo=typescript" alt="TypeScript" /></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js" alt="Next.js" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.8-blue?style=flat&logo=typescript" alt="TypeScript" /></a>
   <a href="https://huiman.antmoo.com"><img src="https://img.shields.io/badge/Live_Demo-huiman.antmoo.com-brightgreen" alt="Live Demo" /></a>
   <a href="https://x.com/antmoch"><img src="https://img.shields.io/badge/X-@antmoch-000000?style=flat&logo=x" alt="Twitter/X" /></a>
 </p>
@@ -22,11 +22,13 @@ Huiman Ark uses the [MIT license](./LICENSE): free to use, modify, distribute, a
 
 ## Online access and support
 
-If you cannot deploy the app, visit the [online demo](https://huiman.antmoo.com). **The demo currently runs the older credits-based version; this repository's free version has not been deployed there yet.** Contact the author for help accessing the new version or deploying it.
+If you cannot deploy the app, use the [online demo](https://huiman.antmoo.com). It runs this repository's free version, with no registration, login, or recharge. Contact the author for usage or deployment help.
 
 Public support contacts: WeChat **13623839679** · Email [toowell2015@126.com](mailto:toowell2015@126.com) · QQ **3575554244** · X (Twitter) [@antmoch](https://x.com/antmoch). The project owner has authorized publishing these support contacts.
 
-On an instance running the new version, no self-hosting or Huiman Ark account is required:
+**Collaboration and custom tools**: If you have a repetitive creative or business workflow you'd like turned into a tool, contact the author; a working demo can be built for free first.
+
+On the online demo or any deployed instance, no self-hosting or Huiman Ark account is required:
 
 1. Open “API settings” in Huiman Ark. Leave the request URL, text model, image model, and API Key empty to inherit the deployment's defaults.
 2. If you need your own Key, use one from the configured provider. For the default AntMoo provider, [register](https://api.antmoo.cc/register), sign in, and create a Key on the [API tokens page](https://api.antmoo.cc/console/token).
@@ -36,11 +38,19 @@ The software is free; model calls may incur charges from the API provider. Check
 
 ## Features
 
-- Generate storyboard scripts, character sheets, and comic pages from a story.
-- Customize the API provider, text and image models, characters, art style, aspect ratio, paragraphs, and panels.
-- Supply reference images for character and style consistency.
-- Save the current creative session in your browser's IndexedDB; no database or cloud account is needed.
-- Save request URL and model preferences locally; user-entered API Keys stay in page memory only and must be entered again after refreshing.
+The workflow has three stages: **story outline → character design sheet → comic pages**. You can skip the character stage and generate pages straight from the script.
+
+- **Story outline**: Turn a story description into a multi-segment storyboard script. Choose automatic length (8–15 segments), a fixed 5/8/10/12/15 segments, or a custom 1–100; set a panel range per segment (default 3~6). Scripts can be written in Chinese, English, or Japanese.
+- **Character design**: Extract characters from the script (outfit, personality, role, staging) and generate a design sheet, plus individual or batch character portraits. Later comic pages reference the sheet to keep characters consistent.
+- **Comic pages**: Generate segment by segment or all at once, and regenerate any page. Landscape 16:9 and portrait 9:16 are supported.
+- **Art styles**: 17 built-in anime styles (kawaii, shonen, cyberpunk, monochrome manga, webtoon, Chinese guofeng, and more), or describe your own style and preferences.
+- **Reference images**: Upload up to 3 images (PNG, JPG/JPEG, WEBP, HEIC, HEIF) to guide both the character sheet and comic page style.
+- **Preview and export**: Browse full-size images with arrow keys and zoom; download single images or export the whole set (character sheet plus all comic pages).
+- **Multi-provider text models**: Besides the default / custom OpenAI-compatible endpoint, presets cover Volcengine Ark (standard API, Agent Plan, Coding Plan), Alibaba Bailian (standard API, Coding Plan), and the official Claude API, each with its own URL, model, and Key.
+- **Image models**: OpenAI-compatible image endpoints, plus native support for Volcengine Seedream 5.0 Pro / Flash and Bailian Qwen Image 2.1 / 3.0.
+- **API configuration**: Override the request URL, text model, image model, and API Key individually in the interface; empty fields inherit deployment defaults.
+- **Local persistence**: The creative session is saved in the browser's IndexedDB and restored after a refresh, with no database or cloud account. User-entered API Keys stay in page memory only and must be re-entered after refreshing.
+- **Interface languages**: Chinese, English, and Japanese.
 
 ## Screenshots
 

@@ -6,8 +6,8 @@
 <p align="center">
   <a href="https://github.com/GL-Wen/huiman-ark"><img src="https://img.shields.io/github/stars/GL-Wen/huiman-ark?style=social" alt="GitHub Repo stars" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js" alt="Next.js" /></a>
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0-blue?style=flat&logo=typescript" alt="TypeScript" /></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js" alt="Next.js" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.8-blue?style=flat&logo=typescript" alt="TypeScript" /></a>
   <a href="https://huiman.antmoo.com"><img src="https://img.shields.io/badge/Live_Demo-huiman.antmoo.com-brightgreen" alt="Live Demo" /></a>
   <a href="https://x.com/antmoch"><img src="https://img.shields.io/badge/X-@antmoch-000000?style=flat&logo=x" alt="Twitter/X" /></a>
 </p>
@@ -22,11 +22,13 @@
 
 ## 在线使用与支持
 
-不会部署可以先访问 [在线体验站](https://huiman.antmoo.com)。**目前体验站仍为旧积分版，本仓库的免费版尚未同步部署。** 需要新版使用帮助或部署协助，请联系作者。
+不会部署可以直接访问 [在线体验站](https://huiman.antmoo.com)，已同步为本仓库的免费版，无需注册、登录或充值。需要使用帮助或部署协助，请联系作者。
 
 公开支持联系方式：微信 **13623839679** · 邮箱 [toowell2015@126.com](mailto:toowell2015@126.com) · QQ **3575554244** · X (Twitter) [@antmoch](https://x.com/antmoch)。这些是作者授权公开的使用支持信息。
 
-在已部署的新版页面中，无需自行部署或注册绘漫方舟账号：
+**合作与定制**：如果你有重复、繁琐的创作或业务流程想做成工具，欢迎联系作者，可以先免费做一个可用的 demo。
+
+在体验站或任意已部署的页面中，无需自行部署或注册绘漫方舟账号：
 
 1. 点击绘漫方舟右上角“API 设置”。请求地址、文本模型、图像模型和 API Key 均可留空，继承部署者提供的默认配置。
 2. 如需自备 Key，填写对应接口的 Key。使用默认 AntMoo 接口时，可在 [AntMoo API 注册账号](https://api.antmoo.cc/register)，登录后前往 [API 令牌页](https://api.antmoo.cc/console/token) 创建 Key。
@@ -36,11 +38,19 @@
 
 ## 功能
 
-- 从故事生成分镜脚本、角色设定图和漫画页。
-- 自定义接口、文本与图像模型，以及角色、画风、画面比例、段落数和每页格数。
-- 使用参考图片保持角色和画面风格。
-- 在当前浏览器的 IndexedDB 中保存创作会话，无需数据库或云账户。
-- 请求地址和模型偏好保存在本地；界面填写的 API Key 仅保存在页面内存中，刷新后需要重新填写。
+创作分三步：**故事大纲 → 角色设定图 → 漫画页**。角色设定可以跳过，直接按脚本生成漫画。
+
+- **故事大纲**：输入故事描述，生成多段分镜脚本。段落数可选自动（8–15 段）、固定 5/8/10/12/15 段，或自定义 1–100 段；每段格子数可设范围（默认 3~6）。脚本输出语言支持中文、英文、日文。
+- **角色设定图**：从脚本中提取角色（服装、性格、定位、镜头站位），生成整体设定图，也可以单独生成或批量生成角色立绘。后续漫画页会参考设定图，保持人物造型一致。
+- **漫画页**：逐段生成或一键生成全部，单页可重新生成；画幅支持横屏 16:9 和竖屏 9:16。
+- **画风**：内置 17 种动漫风格（日系萌系、少年漫画、赛博朋克、黑白漫画、韩漫条漫、国风古韵等），也可自定义风格和风格偏好。
+- **参考图**：最多上传 3 张（PNG、JPG/JPEG、WEBP、HEIC、HEIF），同时影响角色设定图和漫画页画风。
+- **预览与导出**：大图预览支持方向键切换和缩放；可单张下载，或一键导出整套漫画（角色设定图 + 全部漫画页）。
+- **多平台文本模型**：除默认 / 自定义的 OpenAI 兼容接口外，内置火山方舟（普通 API、Agent Plan、Coding Plan）、阿里百炼（普通 API、Coding Plan）和 Claude 官方 API，各平台独立保存地址、模型和 Key。
+- **图像模型**：支持 OpenAI 兼容图像接口，并原生适配火山 Seedream 5.0 Pro / Flash 和百炼千问图像 2.1 / 3.0。
+- **接口配置**：请求地址、文本模型、图像模型和 API Key 均可在界面单独覆盖，留空则继承部署默认值。
+- **本地保存**：创作会话保存在当前浏览器的 IndexedDB 中，刷新后自动恢复，无需数据库或云账户；界面填写的 API Key 只保存在页面内存中，刷新后需重新填写。
+- **多语言界面**：中文、English、日本語。
 
 ## 界面预览
 
