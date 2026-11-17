@@ -3,7 +3,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { type AppLocale } from '@/i18n/routing';
 import { useAppStore, type ScriptSegment } from '../../store';
 import { getTextApiConfig } from '../../lib/textProviders.ts';
-import { Sparkles, ChevronDown, ChevronUp, Image as ImageIcon, Rows3, Trash2, Globe, Palette, Monitor, Grid2x2, Pencil } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp, Image as ImageIcon, Rows3, Trash2, Globe, Palette, Monitor, Grid2x2, Pencil, PanelLeftClose } from 'lucide-react';
 import {
   buildStoryOutputInstruction,
   extractStorySegmentTitle,
@@ -149,6 +149,8 @@ export const Sidebar: React.FC = () => {
   const t = useTranslations('Sidebar');
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const {
+    isSidebarCollapsed,
+    toggleSidebar,
     apiKey,
     openApiSettings,
     storyInput,
@@ -363,13 +365,30 @@ export const Sidebar: React.FC = () => {
   }, [storyInput]);
 
   return (
-    <aside className="w-[360px] flex-shrink-0 border-r border-gray-200 bg-white h-full flex flex-col overflow-y-auto">
-      <div className="p-4 space-y-4">
-        <div className="space-y-1.5">
-          <label className="flex items-center text-xs font-medium text-gray-500">
+    <aside
+      className={`relative flex-shrink-0 border-gray-200 bg-white h-full flex flex-col transition-all duration-300 ease-in-out ${
+        isSidebarCollapsed
+          ? 'w-0 border-r-0 overflow-hidden opacity-0 pointer-events-none'
+          : 'w-[360px] border-r overflow-y-auto opacity-100'
+      }`}
+    >
+      <div className="p-4 space-y-4 min-w-[360px]">
+        <div className="flex items-center justify-between">
+          <label className="flex items-center text-xs font-semibold text-gray-700">
             <Pencil className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
             {t('storyDescription')}
           </label>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            title={t('collapseSidebar')}
+            aria-label={t('collapseSidebar')}
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="space-y-1.5">
           <textarea
             ref={textareaRef}
             value={storyInput}

@@ -54,6 +54,10 @@ interface AppState {
   openApiSettings: () => void;
   closeApiSettings: () => void;
 
+  isSidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+
   storyInput: string;
   setStoryInput: (story: string) => void;
   language: string;
@@ -80,6 +84,7 @@ interface AppState {
 
   generatedScript: ScriptSegment[];
   setGeneratedScript: (script: ScriptSegment[]) => void;
+  updateScriptSegment: (scriptId: string, updates: Partial<ScriptSegment>) => void;
 
   characterDesign: string | null;
   setCharacterDesign: (design: string | null) => void;
@@ -132,6 +137,10 @@ export const useAppStore = create<AppState>()(
       openApiSettings: () => set({ isApiSettingsOpen: true }),
       closeApiSettings: () => set({ isApiSettingsOpen: false }),
 
+      isSidebarCollapsed: false,
+      toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+      setSidebarCollapsed: (isSidebarCollapsed) => set({ isSidebarCollapsed }),
+
       storyInput: '',
       setStoryInput: (story) => set({ storyInput: story }),
       language: '',
@@ -158,6 +167,12 @@ export const useAppStore = create<AppState>()(
 
       generatedScript: [],
       setGeneratedScript: (script) => set({ generatedScript: script }),
+      updateScriptSegment: (scriptId, updates) =>
+        set((state) => ({
+          generatedScript: state.generatedScript.map((segment) =>
+            segment.id === scriptId ? { ...segment, ...updates } : segment,
+          ),
+        })),
 
       characterDesign: null,
       setCharacterDesign: (design) => set({ characterDesign: design }),

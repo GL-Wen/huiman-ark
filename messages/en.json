@@ -138,6 +138,8 @@
     "clearHistory": "Clear History",
     "clearHistoryConfirm": "Clear all history? Your script, character designs, and comic pages will be permanently deleted. This action cannot be undone.",
     "defaultSegmentTitle": "Segment {index}",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
     "languages": {
       "zh": "Simplified Chinese",
       "en": "English",
@@ -193,13 +195,22 @@
     "skipToComics": "Skip to Comic Generation",
     "helper": "Generate character designs first to keep character appearances consistent across pages",
     "generateCurrentPage": "Generate This Page",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "editTitlePlaceholder": "Segment title",
+    "editContentPlaceholder": "Script description & dialogues...",
     "defaultSegmentTitle": "Segment {index}",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
     "alerts": {
       "generateCharactersFailed": "Failed to generate character designs"
     }
   },
   "CharacterBoard": {
     "defaultSegmentTitle": "Segment {index}",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
     "progressGenerating": "Generating comic pages {completed}/{total}",
     "progressGeneratingCurrent": "Generating page {current} of {total}...",
     "progressDone": "{completed}/{total} comic pages completed",
@@ -209,6 +220,9 @@
     "exportAll": "Export Full Comic Set",
     "generateAll": "Generate All Comics",
     "generatingAll": "Generating all pages...",
+    "stopGeneration": "Stop Generation",
+    "stopping": "Stopping...",
+    "retryFailed": "Retry Failed ({count})",
     "referenceTitle": "Character Design Reference",
     "outfit": "Outfit",
     "personality": "Personality",

@@ -96,6 +96,24 @@ test('API overrides persist, credentials and server defaults stay in memory, and
     assert.equal(resetPersisted.apiBaseUrl, '');
     assert.equal(resetPersisted.textModel, '');
     assert.equal(resetPersisted.imageModel, '');
+
+    // Test sidebar collapsed controls
+    assert.equal(useAppStore.getState().isSidebarCollapsed, false);
+    useAppStore.getState().toggleSidebar();
+    assert.equal(useAppStore.getState().isSidebarCollapsed, true);
+    useAppStore.getState().setSidebarCollapsed(false);
+    assert.equal(useAppStore.getState().isSidebarCollapsed, false);
+
+    // Test updateScriptSegment
+    useAppStore.getState().setGeneratedScript([
+      { id: 'cut-1', title: 'Title 1', cut: 'Cut 1', scene: 'Scene 1', plot: 'Plot 1', desc: 'Desc 1', raw: 'Raw 1' },
+      { id: 'cut-2', title: 'Title 2', cut: 'Cut 2', scene: 'Scene 2', plot: 'Plot 2', desc: 'Desc 2', raw: 'Raw 2' },
+    ]);
+    useAppStore.getState().updateScriptSegment('cut-2', { title: 'Updated Title 2', raw: 'Updated Raw 2' });
+    const segments = useAppStore.getState().generatedScript;
+    assert.equal(segments[0].title, 'Title 1');
+    assert.equal(segments[1].title, 'Updated Title 2');
+    assert.equal(segments[1].raw, 'Updated Raw 2');
   } finally {
     Reflect.deleteProperty(globalThis, 'window');
   }

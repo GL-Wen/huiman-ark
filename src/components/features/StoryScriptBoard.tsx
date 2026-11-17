@@ -6,7 +6,7 @@ import {
   isInvalidStoryMetaBlock,
   sanitizeStorySegmentText,
 } from '../../api/llm';
-import { Users, FastForward, PlaySquare } from 'lucide-react';
+import { Users, FastForward, PlaySquare, Pencil, Check, X } from 'lucide-react';
 import { getAnimeStylePrompt } from '../../lib/animeStyles';
 import { getTextApiConfig } from '../../lib/textProviders.ts';
 
@@ -24,10 +24,14 @@ const normalizeSegments = <T extends { title: string; raw: string }>(
 
 export const StoryScriptBoard: React.FC = () => {
   const [isGeneratingCharacters, setIsGeneratingCharacters] = React.useState(false);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = React.useState('');
+  const [draftRaw, setDraftRaw] = React.useState('');
   const t = useTranslations('StoryBoard');
   const {
     generatedScript,
     setGeneratedScript,
+    updateScriptSegment,
     setCurrentStep,
     apiKey,
     hasDefaultApiKey,
@@ -113,6 +117,24 @@ export const StoryScriptBoard: React.FC = () => {
     setCurrentStep('generating_comics');
   };
 
+  const handleStartEdit = (script: (typeof generatedScript)[number], fallbackTitle: string) => {
+    setEditingId(script.id);
+    setDraftTitle(script.title || fallbackTitle);
+    setDraftRaw(script.raw);
+  };
+
+  const handleSaveEdit = (scriptId: string) => {
+    updateScriptSegment(scriptId, {
+      title: draftTitle.trim(),
+      raw: draftRaw.trim(),
+    });
+    setEditingId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="shrink-0 border-b border-gray-100 px-5 py-3 flex items-center justify-between gap-4">
@@ -150,40 +172,114 @@ export const StoryScriptBoard: React.FC = () => {
 
       <div className="flex-1 overflow-y-auto p-5 bg-gray-50/40">
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] justify-items-start gap-3 pb-6 content-start">
-          {generatedScript.map((script, index) => (
-            <div
-              key={script.id}
-              className="w-full min-w-0 max-w-[300px] bg-white border border-gray-200 rounded-md overflow-hidden flex flex-col h-[380px]"
-            >
-              <div className="px-3 py-2 border-b border-gray-100 flex justify-between items-center">
-                <span className="text-xs font-semibold text-gray-700">
-                  {script.title || getDefaultTitle(index + 1)}
-                </span>
-                <span className="text-[10px] text-gray-400 font-mono">{script.cut}</span>
-              </div>
+          {generatedScript.map((script, index) => {
+            const isEditing = editingId === script.id;
+            const currentTitle = script.title || getDefaultTitle(index + 1);
 
-              <div className="p-3 flex-1 overflow-y-auto">
-                <div className="text-[13px] text-gray-700 whitespace-pre-wrap leading-6 tracking-[0.01em]">
-                  {getSegmentDisplayContent(script.raw)}
+            return (
+              <div
+                key={script.id}
+                className={`w-full min-w-0 max-w-[300px] bg-white border rounded-md overflow-hidden flex flex-col h-[380px] transition-all ${
+                  isEditing
+                    ? 'border-indigo-400 ring-2 ring-indigo-100 shadow-sm'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="px-3 py-2 border-b border-gray-100 flex justify-between items-center gap-2">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={draftTitle}
+                      onChange={(e) => setDraftTitle(e.target.value)}
+                      placeholder={t('editTitlePlaceholder')}
+                      className="text-xs font-semibold text-gray-800 border border-indigo-200 rounded px-1.5 py-0.5 flex-1 min-w-0 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
+                      autoFocus
+                    />
+                  ) : (
+                    <div className="flex items-center min-w-0 flex-1">
+                      <span className="text-xs font-semibold text-gray-700 truncate" title={currentTitle}>
+                        {currentTitle}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(script, getDefaultTitle(index + 1))}
+                        disabled={isGeneratingCharacters}
+                        className="p-1 rounded text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors ml-1 shrink-0"
+                        title={t('edit')}
+                        aria-label={t('edit')}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  <span className="text-[10px] text-gray-400 font-mono shrink-0">{script.cut}</span>
+                </div>
+
+                <div className="p-3 flex-1 overflow-y-auto">
+                  {isEditing ? (
+                    <textarea
+                      value={draftRaw}
+                      onChange={(e) => setDraftRaw(e.target.value)}
+                      placeholder={t('editContentPlaceholder')}
+                      className="w-full h-full p-2 text-[12px] text-gray-700 leading-5 border border-indigo-200 rounded-md bg-indigo-50/20 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    />
+                  ) : (
+                    <div className="text-[13px] text-gray-700 whitespace-pre-wrap leading-6 tracking-[0.01em]">
+                      {getSegmentDisplayContent(script.raw)}
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-3 py-2 border-t border-gray-100 flex justify-between items-center">
+                  {isEditing ? (
+                    <div className="flex justify-end items-center gap-2 w-full">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="px-2.5 py-1 rounded text-[11px] font-medium text-gray-500 hover:bg-gray-100 transition-colors flex items-center"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        {t('cancel')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEdit(script.id)}
+                        className="px-2.5 py-1 rounded text-[11px] font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center"
+                      >
+                        <Check className="w-3 h-3 mr-1" />
+                        {t('save')}
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(script, getDefaultTitle(index + 1))}
+                        disabled={isGeneratingCharacters}
+                        className="text-[11px] font-medium text-gray-400 hover:text-indigo-600 flex items-center transition-colors"
+                      >
+                        <Pencil className="w-3 h-3 mr-1" />
+                        {t('edit')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateSingleComic(script.id)}
+                        disabled={isGeneratingCharacters}
+                        className={`px-3 py-1 rounded text-[11px] font-medium flex items-center transition-colors ${
+                          isGeneratingCharacters
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-indigo-600 hover:bg-indigo-50'
+                        }`}
+                      >
+                        <PlaySquare className="w-3 h-3 mr-1" />
+                        {t('generateCurrentPage')}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-
-              <div className="px-3 py-2 border-t border-gray-100 flex justify-end">
-                <button
-                  onClick={() => handleGenerateSingleComic(script.id)}
-                  disabled={isGeneratingCharacters}
-                  className={`px-3 py-1 rounded text-[11px] font-medium flex items-center transition-colors ${
-                    isGeneratingCharacters
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-indigo-600 hover:bg-indigo-50'
-                  }`}
-                >
-                  <PlaySquare className="w-3 h-3 mr-1" />
-                  {t('generateCurrentPage')}
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

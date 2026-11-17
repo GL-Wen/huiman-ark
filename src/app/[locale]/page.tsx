@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { PanelLeftOpen } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { EmptyCanvas } from '@/components/features/EmptyCanvas';
@@ -52,10 +53,11 @@ const getSegmentCountText = (locale: string, count: number) => {
 
 export default function App() {
   useSessionPersistence();
-  const { currentStep, generatedScript, storyInput } = useAppStore();
+  const { currentStep, generatedScript, storyInput, isSidebarCollapsed, toggleSidebar } = useAppStore();
   const locale = useLocale();
   const tSeo = useTranslations('SeoMap');
   const tPage = useTranslations('Page');
+  const tSidebar = useTranslations('Sidebar');
 
   const currentSeo = React.useMemo(() => {
     const storySummary = storyInput.trim();
@@ -116,6 +118,19 @@ export default function App() {
             {tPage('sr_title')}
           </h1>
           <p className="sr-only">{tPage('sr_description')}</p>
+
+          {isSidebarCollapsed && (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="absolute left-3 top-3 z-30 h-8 px-2.5 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 flex items-center gap-1.5 text-xs text-gray-700 transition-all font-medium hover:border-gray-300"
+              title={tSidebar('expandSidebar')}
+              aria-label={tSidebar('expandSidebar')}
+            >
+              <PanelLeftOpen className="w-4 h-4 text-indigo-600" />
+              <span>{tSidebar('expandSidebar')}</span>
+            </button>
+          )}
           {currentStep === 'initial' && <EmptyCanvas />}
 
           {currentStep === 'generating_story' && (
