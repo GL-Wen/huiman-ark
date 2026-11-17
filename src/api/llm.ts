@@ -504,14 +504,14 @@ export const generateCharacterPortraits = async (
     targetProfiles?: MatchedCharacterProfile[];
   },
 ): Promise<GenerateCharacterPortraitsResult> => {
-  const profiles = parseCharacterProfiles(characterText);
-  if (!profiles.length) {
+  const parsedProfiles = parseCharacterProfiles(characterText);
+  const profilesToGenerate = targetProfiles && targetProfiles.length > 0
+    ? targetProfiles
+    : parsedProfiles.map((profile, i) => ({ profile, originalIndex: i }));
+
+  if (!profilesToGenerate.length) {
     return { portraits: {}, failures: ['未找到角色设定文本'] };
   }
-
-  const profilesToGenerate = targetProfiles
-    ? targetProfiles
-    : profiles.map((profile, i) => ({ profile, originalIndex: i }));
 
   const portraits: Record<string, string> = {};
   const failures: string[] = [];
@@ -541,9 +541,11 @@ export const generateCharacterPortraits = async (
           : [],
       });
 
+      portraits[profile.name] = image;
       portraits[key] = image;
-    } catch {
-      failures.push(`${profile.name}（${i + 1}）`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      failures.push(`${profile.name}: ${message}`);
     }
   }
 

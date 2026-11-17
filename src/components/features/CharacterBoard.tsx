@@ -459,7 +459,7 @@ export const CharacterBoard: React.FC = () => {
 
   const handleGenerateSinglePortrait = useCallback(
     async (profile: CharacterProfile) => {
-      if ((!apiKey.trim() && !hasDefaultApiKey) || (!displayCharacterDesign && !getTextApiConfig(useAppStore.getState()).hasApiKey)) {
+      if (!apiKey.trim() && !hasDefaultApiKey) {
         openApiSettings();
         return;
       }
@@ -477,10 +477,15 @@ export const CharacterBoard: React.FC = () => {
           targetProfiles: [{ profile, originalIndex: 0 }],
         });
 
-        if (portraits[profile.name]) {
-          setCharacterPortrait(profile.name, portraits[profile.name]);
+        const portraitUrl =
+          portraits[profile.name] ??
+          portraits[`${profile.name}#0`] ??
+          Object.values(portraits)[0];
+
+        if (portraitUrl) {
+          setCharacterPortrait(profile.name, portraitUrl);
         } else if (failures.length) {
-          alert(failures.join(', '));
+          alert(failures.join('\n'));
         }
       } catch (err) {
         alert(err instanceof Error ? err.message : t('alerts.characterDesignFailed'));
@@ -507,7 +512,7 @@ export const CharacterBoard: React.FC = () => {
 
   const handleGenerateAllPortraits = useCallback(async () => {
     if (!characterProfiles.length) return;
-    if ((!apiKey.trim() && !hasDefaultApiKey) || (!displayCharacterDesign && !getTextApiConfig(useAppStore.getState()).hasApiKey)) {
+    if (!apiKey.trim() && !hasDefaultApiKey) {
       openApiSettings();
       return;
     }
@@ -525,10 +530,16 @@ export const CharacterBoard: React.FC = () => {
       });
 
       if (Object.keys(portraits).length > 0) {
-        setCharacterPortraits({ ...characterPortraits, ...portraits });
+        const normalizedPortraits: Record<string, string> = {};
+        for (const [k, url] of Object.entries(portraits)) {
+          const cleanName = k.replace(/#\d+$/, '');
+          normalizedPortraits[cleanName] = url;
+          normalizedPortraits[k] = url;
+        }
+        setCharacterPortraits({ ...characterPortraits, ...normalizedPortraits });
       }
       if (failures.length) {
-        alert(`部分立绘生成失败：${failures.join('、')}`);
+        alert(`部分立绘生成失败：\n${failures.join('\n')}`);
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : t('alerts.characterDesignFailed'));

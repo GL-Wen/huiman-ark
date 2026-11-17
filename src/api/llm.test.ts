@@ -82,3 +82,49 @@ test('browser requests carry user overrides and omit empty fields for server def
     Reflect.deleteProperty(globalThis, 'window');
   }
 });
+
+test('generateCharacterPortraits produces portraits keyed by character name and original index', async () => {
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      setTimeout,
+      clearTimeout,
+    },
+  });
+
+  mock.method(globalThis, 'fetch', async () => {
+    return Response.json({ imageUrl: 'data:image/png;base64,mockPortrait' });
+  });
+
+  try {
+    const { generateCharacterPortraits } = await import('./llm.ts');
+    const result = await generateCharacterPortraits('test-api-key', {
+      characterText: '',
+      language: 'zh',
+      animeStyle: '日系二次元',
+      style: '精致',
+      sheetImage: 'data:image/png;base64,sheet',
+      targetProfiles: [
+        {
+          profile: {
+            name: '艾尔',
+            appearance: '少年剑士',
+            outfit: '披风',
+            personality: '勇敢',
+            role: '主角',
+            staging: '站立',
+            raw: '艾尔设定',
+          },
+          originalIndex: 0,
+        },
+      ],
+    });
+
+    assert.equal(result.failures.length, 0);
+    assert.equal(result.portraits['艾尔'], 'data:image/png;base64,mockPortrait');
+    assert.equal(result.portraits['艾尔#0'], 'data:image/png;base64,mockPortrait');
+  } finally {
+    mock.restoreAll();
+    Reflect.deleteProperty(globalThis, 'window');
+  }
+});
