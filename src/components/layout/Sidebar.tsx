@@ -503,11 +503,13 @@ export const Sidebar: React.FC = () => {
           </button>
         </div>
         <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-            <span className="text-[10px] text-gray-400 shrink-0 flex items-center">
-              <Sparkles className="w-2.5 h-2.5 text-indigo-400 mr-0.5" />
+          <div className="flex items-center justify-between text-[11px] text-gray-500">
+            <span className="flex items-center font-medium">
+              <Sparkles className="w-3 h-3 text-indigo-500 mr-1" />
               {t('templatesLabel')}
             </span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
             {(INSPIRATION_TEMPLATES[locale] || INSPIRATION_TEMPLATES.zh).map((tmpl) => (
               <button
                 key={tmpl.label}
@@ -517,14 +519,16 @@ export const Sidebar: React.FC = () => {
                   setAnimeStyle(tmpl.animeStyle);
                   setStyle(tmpl.style);
                 }}
-                className="px-2 py-0.5 rounded text-[11px] bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 text-gray-600 hover:text-indigo-600 transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-50 hover:bg-indigo-50/70 border border-gray-200/80 hover:border-indigo-300 text-gray-700 hover:text-indigo-600 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                 title={`${tmpl.label} - ${tmpl.style}`}
               >
-                <span>{tmpl.emoji}</span>
-                <span>{tmpl.label}</span>
+                <span className="text-sm">{tmpl.emoji}</span>
+                <span className="truncate">{tmpl.label}</span>
               </button>
             ))}
           </div>
+        </div>
+        <div className="space-y-1.5">
           <textarea
             ref={textareaRef}
             value={storyInput}

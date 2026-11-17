@@ -110,7 +110,7 @@
   },
   "Sidebar": {
     "storyDescription": "漫画故事描述：",
-    "templatesLabel": "灵感模板：",
+    "templatesLabel": "灵感模板（点击快速填入示例）：",
     "templateApplied": "已填充模板",
     "storyPlaceholder": "例如：在一个被遗忘的赛博朋克城市中，一名拥有读取记忆能力的侦探卷入了一场神秘的阴谋。风格偏向暗黑系，角色冷酷果断...",
     "generateStory": "生成故事大纲",

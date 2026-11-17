@@ -110,7 +110,7 @@
   },
   "Sidebar": {
     "storyDescription": "漫画ストーリーの説明：",
-    "templatesLabel": "インスピレーション：",
+    "templatesLabel": "ヒント（クリックして適用）：",
     "templateApplied": "テンプレートを適用しました",
     "storyPlaceholder": "例：忘れ去られたサイバーパンクの街で、記憶を読み取る能力を持つ探偵が謎の陰謀に巻き込まれる。ダークな世界観で、キャラクターは冷酷...",
     "generateStory": "ストーリー生成",

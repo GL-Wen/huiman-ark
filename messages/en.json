@@ -110,7 +110,7 @@
   },
   "Sidebar": {
     "storyDescription": "Comic story description:",
-    "templatesLabel": "Inspiration Templates:",
+    "templatesLabel": "Inspiration Templates (Click to fill):",
     "templateApplied": "Template applied",
     "storyPlaceholder": "For example: In a forgotten cyberpunk city, a detective with memory-reading abilities gets entangled in a mysterious conspiracy. Dark style, ruthless characters...",
     "generateStory": "Generate Story Outline",
