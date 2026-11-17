@@ -10,9 +10,12 @@ import {
   buildComicReferenceInstruction,
   generateImage,
   generateCharacterAssets,
+  generateCharacterPortraits,
   parseCharacterProfiles,
+  pickComicCharacterProfiles,
   sanitizeCharacterDesignText,
   type CharacterReferenceMode,
+  type CharacterProfile,
 } from '../../api/llm';
 import { getAnimeStylePrompt } from '../../lib/animeStyles';
 import { getTextApiConfig } from '../../lib/textProviders.ts';
@@ -44,6 +47,9 @@ export const CharacterBoard: React.FC = () => {
     setCharacterDesignImage,
     characterNames,
     setCharacterNames,
+    characterPortraits,
+    setCharacterPortrait,
+    setCharacterPortraits,
     generatedComics,
     setGeneratedComic,
     pendingComicId,
@@ -62,6 +68,8 @@ export const CharacterBoard: React.FC = () => {
   const [isCancellingAll, setIsCancellingAll] = useState(false);
   const [generatingAllIndex, setGeneratingAllIndex] = useState(-1);
   const [isRegeneratingCharacterSheet, setIsRegeneratingCharacterSheet] = useState(false);
+  const [generatingPortraits, setGeneratingPortraits] = useState<Record<string, boolean>>({});
+  const [isGeneratingAllPortraits, setIsGeneratingAllPortraits] = useState(false);
   const [lightboxState, setLightboxState] = useState<{ items: ImageLightboxItem[]; index: number } | null>(null);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -130,33 +138,70 @@ export const CharacterBoard: React.FC = () => {
     setLightboxState({ items, index });
   }, []);
 
-  const buildReferenceImages = useCallback((): {
-    mode: CharacterReferenceMode;
-    images: string[];
-    labels: string[];
-    portraitNames: string[];
-  } => {
-    const MAX_REF = 6;
+  const buildReferenceImages = useCallback(
+    (script: ScriptSegment): {
+      mode: CharacterReferenceMode;
+      images: string[];
+      labels: string[];
+      portraitNames: string[];
+      matchedNames: string[];
+    } => {
+      const matchedProfiles = pickComicCharacterProfiles({
+        characterDesign: displayCharacterDesign || characterDesign,
+        cleanedSegmentRaw: script.raw,
+        scene: script.scene,
+        plot: script.plot,
+        desc: script.desc,
+        characterNames,
+      });
 
-    if (characterDesignImage) {
-      const userRefImages = referenceImages.slice(0, MAX_REF - 1);
-      return {
-        mode: 'sheet',
-        images: [characterDesignImage, ...userRefImages],
-        labels: [
-          '【角色外观唯一标准】角色设定总图：图中每个角色的脸型、五官、发型发色、服装配色是本次漫画所有分格的硬约束，必须严格复刻，不得偏移或改造',
-          ...Array(userRefImages.length).fill(''),
-        ],
-        portraitNames: [],
-      };
-    }
+      const matchedNames = matchedProfiles.map((m) => m.profile.name);
 
-    if (referenceImages.length > 0) {
-      return { mode: 'user', images: referenceImages, labels: [], portraitNames: [] };
-    }
+      const availablePortraits = matchedProfiles
+        .filter((m) => Boolean(characterPortraits[m.profile.name]))
+        .map((m) => ({
+          name: m.profile.name,
+          image: characterPortraits[m.profile.name],
+        }));
 
-    return { mode: 'none', images: [], labels: [], portraitNames: [] };
-  }, [characterDesignImage, referenceImages]);
+      if (availablePortraits.length > 0) {
+        return {
+          mode: 'portraits',
+          images: availablePortraits.map((p) => p.image),
+          labels: availablePortraits.map(
+            (p) => `【角色单人立绘】${p.name}：本分镜涉及该角色，必须严格对齐其面部特征、发型发色、服装款式与配色`,
+          ),
+          portraitNames: availablePortraits.map((p) => p.name),
+          matchedNames,
+        };
+      }
+
+      if (characterDesignImage) {
+        return {
+          mode: 'sheet',
+          images: [characterDesignImage],
+          labels: [
+            '【角色外观唯一标准】角色设定总图：图中每个角色的脸型、五官、发型发色、服装配色是本次漫画所有分格的硬约束，必须严格复刻，不得偏移或改造',
+          ],
+          portraitNames: [],
+          matchedNames,
+        };
+      }
+
+      if (referenceImages.length > 0) {
+        return {
+          mode: 'user',
+          images: referenceImages,
+          labels: referenceImages.map((_, i) => `参考图 ${i + 1}`),
+          portraitNames: [],
+          matchedNames,
+        };
+      }
+
+      return { mode: 'none', images: [], labels: [], portraitNames: [], matchedNames: [] };
+    },
+    [characterDesign, characterDesignImage, characterNames, characterPortraits, displayCharacterDesign, referenceImages],
+  );
 
   const resolveStepAfterSingle = useCallback(
     (scriptId: string) => {
@@ -191,7 +236,7 @@ export const CharacterBoard: React.FC = () => {
       });
 
       try {
-        const { mode, images, labels, portraitNames } = buildReferenceImages();
+        const { mode, images, labels, portraitNames } = buildReferenceImages(script);
 
         const prompt = buildComicPagePrompt({
           segment: script,
@@ -411,6 +456,102 @@ export const CharacterBoard: React.FC = () => {
       t,
     ],
   );
+
+  const handleGenerateSinglePortrait = useCallback(
+    async (profile: CharacterProfile) => {
+      if ((!apiKey.trim() && !hasDefaultApiKey) || (!displayCharacterDesign && !getTextApiConfig(useAppStore.getState()).hasApiKey)) {
+        openApiSettings();
+        return;
+      }
+
+      setGeneratingPortraits((prev) => ({ ...prev, [profile.name]: true }));
+      try {
+        const selectedAnimeStyle = getAnimeStylePrompt(animeStyle, customAnimeStyle);
+        const { portraits, failures } = await generateCharacterPortraits(apiKey, {
+          characterText: displayCharacterDesign || characterDesign || '',
+          language,
+          animeStyle: selectedAnimeStyle,
+          style,
+          sheetImage: characterDesignImage,
+          referenceImages,
+          targetProfiles: [{ profile, originalIndex: 0 }],
+        });
+
+        if (portraits[profile.name]) {
+          setCharacterPortrait(profile.name, portraits[profile.name]);
+        } else if (failures.length) {
+          alert(failures.join(', '));
+        }
+      } catch (err) {
+        alert(err instanceof Error ? err.message : t('alerts.characterDesignFailed'));
+      } finally {
+        setGeneratingPortraits((prev) => ({ ...prev, [profile.name]: false }));
+      }
+    },
+    [
+      apiKey,
+      animeStyle,
+      characterDesign,
+      characterDesignImage,
+      customAnimeStyle,
+      displayCharacterDesign,
+      hasDefaultApiKey,
+      language,
+      openApiSettings,
+      referenceImages,
+      setCharacterPortrait,
+      style,
+      t,
+    ],
+  );
+
+  const handleGenerateAllPortraits = useCallback(async () => {
+    if (!characterProfiles.length) return;
+    if ((!apiKey.trim() && !hasDefaultApiKey) || (!displayCharacterDesign && !getTextApiConfig(useAppStore.getState()).hasApiKey)) {
+      openApiSettings();
+      return;
+    }
+
+    setIsGeneratingAllPortraits(true);
+    try {
+      const selectedAnimeStyle = getAnimeStylePrompt(animeStyle, customAnimeStyle);
+      const { portraits, failures } = await generateCharacterPortraits(apiKey, {
+        characterText: displayCharacterDesign || characterDesign || '',
+        language,
+        animeStyle: selectedAnimeStyle,
+        style,
+        sheetImage: characterDesignImage,
+        referenceImages,
+      });
+
+      if (Object.keys(portraits).length > 0) {
+        setCharacterPortraits({ ...characterPortraits, ...portraits });
+      }
+      if (failures.length) {
+        alert(`部分立绘生成失败：${failures.join('、')}`);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t('alerts.characterDesignFailed'));
+    } finally {
+      setIsGeneratingAllPortraits(false);
+    }
+  }, [
+    apiKey,
+    animeStyle,
+    characterDesign,
+    characterDesignImage,
+    characterPortraits,
+    characterProfiles,
+    customAnimeStyle,
+    displayCharacterDesign,
+    hasDefaultApiKey,
+    language,
+    openApiSettings,
+    referenceImages,
+    setCharacterPortraits,
+    style,
+    t,
+  ]);
 
   const failedScripts = useMemo(() => {
     return generatedScript.filter((script) => Boolean(generationErrors[script.id]));
@@ -729,10 +870,26 @@ export const CharacterBoard: React.FC = () => {
                 )}
               </div>
 
-              <div className="min-h-0 bg-white">
-                <div className="max-h-[560px] overflow-y-auto divide-y divide-gray-100">
+              <div className="min-h-0 bg-white flex flex-col">
+                <div className="px-4 py-2.5 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-700">
+                    角色档案（{characterProfiles.length}人）
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAllPortraits}
+                    disabled={isGeneratingAllPortraits}
+                    className="px-2.5 py-1 rounded text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isGeneratingAllPortraits ? 'animate-spin' : ''}`} />
+                    <span>{isGeneratingAllPortraits ? t('generating') : t('generateAllPortraits')}</span>
+                  </button>
+                </div>
+                <div className="max-h-[560px] overflow-y-auto divide-y divide-gray-100 flex-1">
                   {characterProfiles.map((profile, index) => {
                     const profileCardKey = `${profile.name}-${index}`;
+                    const hasPortrait = Boolean(characterPortraits[profile.name]);
+                    const isPortraitGenerating = Boolean(generatingPortraits[profile.name]);
                     const detailSections = [
                       { label: t('outfit'), value: profile.outfit },
                       { label: t('personality'), value: profile.personality },
@@ -742,10 +899,57 @@ export const CharacterBoard: React.FC = () => {
 
                     return (
                       <div key={profileCardKey} className="bg-white p-4">
-                        <h4 className="text-sm font-semibold text-gray-800 mb-1">{profile.name}</h4>
-                        <p className="text-[12px] leading-5 text-gray-600">
-                          {profile.appearance || t('noDescription')}
-                        </p>
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-bold text-gray-800">{profile.name}</h4>
+                            <p className="text-[12px] leading-5 text-gray-600 mt-0.5">
+                              {profile.appearance || t('noDescription')}
+                            </p>
+                          </div>
+                          <div className="shrink-0 flex flex-col items-center">
+                            {hasPortrait ? (
+                              <div className="relative group rounded-md overflow-hidden border border-indigo-200 w-14 h-20 bg-gray-50 shadow-sm">
+                                <img
+                                  src={characterPortraits[profile.name]}
+                                  alt={profile.name}
+                                  className="w-full h-full object-cover cursor-zoom-in transition-transform duration-200 group-hover:scale-105"
+                                  onClick={() =>
+                                    openLightbox(
+                                      [
+                                        {
+                                          src: characterPortraits[profile.name],
+                                          alt: profile.name,
+                                          title: profile.name,
+                                          subtitle: profile.role,
+                                          downloadFilename: `${profile.name}-portrait.png`,
+                                        },
+                                      ],
+                                      0,
+                                    )
+                                  }
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleGenerateSinglePortrait(profile)}
+                                  disabled={isPortraitGenerating}
+                                  className="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity text-center cursor-pointer"
+                                >
+                                  {isPortraitGenerating ? '...' : t('regenerate')}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateSinglePortrait(profile)}
+                                disabled={isPortraitGenerating}
+                                className="px-2 py-1 rounded text-[11px] font-medium border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                              >
+                                <RefreshCw className={`w-3 h-3 ${isPortraitGenerating ? 'animate-spin' : ''}`} />
+                                <span>{isPortraitGenerating ? t('generating') : t('generatePortrait')}</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
                         {detailSections.length > 0 && (
                           <div className="mt-3 space-y-2">
                             {detailSections.map((section) => (
@@ -776,6 +980,15 @@ export const CharacterBoard: React.FC = () => {
           const isGenerating = Boolean(generatingCuts[script.id]);
           const errorMessage = generationErrors[script.id];
           const isCurrentlyGenerating = isGeneratingAll && generatingAllIndex === index;
+          const matchedCharacters = pickComicCharacterProfiles({
+            characterDesign: displayCharacterDesign || characterDesign,
+            cleanedSegmentRaw: script.raw,
+            scene: script.scene,
+            plot: script.plot,
+            desc: script.desc,
+            characterNames,
+          }).map((m) => m.profile.name);
+          const hasMatchedPortrait = matchedCharacters.some((name) => Boolean(characterPortraits[name]));
 
           return (
             <div
@@ -808,6 +1021,28 @@ export const CharacterBoard: React.FC = () => {
                     <p className="text-[11px] text-gray-300 mt-1">{t('notGeneratedHint')}</p>
                   </div>
                 )}
+              </div>
+
+              <div className="px-3 py-1.5 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between text-[11px] gap-2">
+                <div className="flex items-center gap-1 min-w-0 text-gray-500">
+                  <Users className="w-3 h-3 text-gray-400 shrink-0" />
+                  <span className="truncate">
+                    {matchedCharacters.length ? matchedCharacters.join('、') : '场景/空镜'}
+                  </span>
+                </div>
+                {hasMatchedPortrait ? (
+                  <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">
+                    专属立绘参考
+                  </span>
+                ) : characterDesignImage ? (
+                  <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+                    全家福参考
+                  </span>
+                ) : referenceImages.length ? (
+                  <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">
+                    画风参考图
+                  </span>
+                ) : null}
               </div>
 
               <div className="px-3 py-2 border-b border-gray-100 flex justify-between items-center gap-2">

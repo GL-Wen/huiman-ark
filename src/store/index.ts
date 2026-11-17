@@ -95,6 +95,10 @@ interface AppState {
   characterNames: string[];
   setCharacterNames: (names: string[]) => void;
 
+  characterPortraits: Record<string, string>;
+  setCharacterPortrait: (name: string, image: string) => void;
+  setCharacterPortraits: (portraits: Record<string, string>) => void;
+
   generatedComics: GeneratedComicMap;
   setGeneratedComics: (comics: GeneratedComicMap) => void;
   setGeneratedComic: (scriptId: string, image: string) => void;
@@ -183,6 +187,16 @@ export const useAppStore = create<AppState>()(
       characterNames: [],
       setCharacterNames: (names) => set({ characterNames: names }),
 
+      characterPortraits: {},
+      setCharacterPortrait: (name, image) =>
+        set((state) => ({
+          characterPortraits: {
+            ...state.characterPortraits,
+            [name]: image,
+          },
+        })),
+      setCharacterPortraits: (portraits) => set({ characterPortraits: portraits }),
+
       generatedComics: {},
       setGeneratedComics: (comics) => set({ generatedComics: comics }),
       setGeneratedComic: (scriptId, image) =>
@@ -212,6 +226,7 @@ export const useAppStore = create<AppState>()(
           characterDesign: null,
           characterDesignImage: null,
           characterNames: [],
+          characterPortraits: {},
           generatedComics: {},
           pendingComicId: null,
         }),

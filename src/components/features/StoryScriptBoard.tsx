@@ -46,6 +46,7 @@ export const StoryScriptBoard: React.FC = () => {
     setCharacterDesign,
     setCharacterDesignImage,
     setCharacterNames,
+    setCharacterPortraits,
     setPendingComicId,
   } = useAppStore();
   const getDefaultTitle = React.useCallback((index: number) => t('defaultSegmentTitle', { index }), [t]);
@@ -103,6 +104,7 @@ export const StoryScriptBoard: React.FC = () => {
     setCharacterDesign(null);
     setCharacterDesignImage(null);
     setCharacterNames([]);
+    setCharacterPortraits({});
     setPendingComicId('__all__');
     setCurrentStep('generating_comics');
   };

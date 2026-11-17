@@ -114,6 +114,13 @@ test('API overrides persist, credentials and server defaults stay in memory, and
     assert.equal(segments[0].title, 'Title 1');
     assert.equal(segments[1].title, 'Updated Title 2');
     assert.equal(segments[1].raw, 'Updated Raw 2');
+
+    // Test characterPortraits
+    assert.deepEqual(useAppStore.getState().characterPortraits, {});
+    useAppStore.getState().setCharacterPortrait('Alice', 'data:image/png;base64,alice');
+    assert.equal(useAppStore.getState().characterPortraits['Alice'], 'data:image/png;base64,alice');
+    useAppStore.getState().setCharacterPortraits({ Bob: 'data:image/png;base64,bob' });
+    assert.equal(useAppStore.getState().characterPortraits['Bob'], 'data:image/png;base64,bob');
   } finally {
     Reflect.deleteProperty(globalThis, 'window');
   }
