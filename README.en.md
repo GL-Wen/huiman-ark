@@ -16,7 +16,7 @@
 
 > ⭐️ **If this open-source project helps your AI comic workflow or Next.js development, please give it a Star ⭐️!**
 
-Turn stories into storyboard scripts, character designs, and comic pages. Built with Next.js, React, TypeScript, and Tailwind CSS, with Chinese, English, and Japanese interfaces.
+Turn stories into storyboard scripts, character designs, standalone character portraits, and multi-panel comic pages. Built with Next.js, React, TypeScript, and Tailwind CSS, with Chinese, English, and Japanese interfaces.
 
 Huiman Ark uses the [MIT license](./LICENSE): free to use, modify, distribute, and use commercially. No registration, login, or recharge is required. Use the deployment's default API configuration or supply your own in the interface. API usage is billed to the provider account associated with the Key used.
 
@@ -38,14 +38,20 @@ The software is free; model calls may incur charges from the API provider. Check
 
 ## Features
 
-The workflow has three stages: **story outline → character design sheet → comic pages**. You can skip the character stage and generate pages straight from the script.
+The workflow features a guided four-stage process: **1. Inspiration & Style Settings → 2. Story & Storyboard Outline → 3. Character Sheets & Individual Portraits → 4. Comic Generation & Rich Export**. You can also skip character design and generate pages directly from the script.
 
-- **Story outline**: Turn a story description into a multi-segment storyboard script. Choose automatic length (8–15 segments), a fixed 5/8/10/12/15 segments, or a custom 1–100; set a panel range per segment (default 3~6). Scripts can be written in Chinese, English, or Japanese.
-- **Character design**: Extract characters from the script (outfit, personality, role, staging) and generate a design sheet, plus individual or batch character portraits. Later comic pages reference the sheet to keep characters consistent.
-- **Comic pages**: Generate segment by segment or all at once, and regenerate any page. Landscape 16:9 and portrait 9:16 are supported.
-- **Art styles**: 17 built-in anime styles (kawaii, shonen, cyberpunk, monochrome manga, webtoon, Chinese guofeng, and more), or describe your own style and preferences.
-- **Reference images**: Upload up to 3 images (PNG, JPG/JPEG, WEBP, HEIC, HEIF) to guide both the character sheet and comic page style.
-- **Preview and export**: Browse full-size images with arrow keys and zoom; download single images or export the whole set (character sheet plus all comic pages).
+- **Visual stepper navigation**: A clear top progress bar with stage indicators, status tracking, and one-click navigation across completed steps for an intuitive, structured workflow.
+- **Story inspiration templates**: Built-in curated presets (Cyberpunk Noir, Xianxia Fantasy, Slice-of-Life Healing, Shonen Adventure, etc.) displayed in a responsive 2-column grid. Populate story concepts, art style preferences, and storyboard parameters with a single click.
+- **Story outline & inline storyboard editing**: Turn a story description into a multi-segment storyboard script (automatic 8–15 segments, fixed 5/8/10/12/15 segments, or custom 1–100; panels configurable from 3~6). Each storyboard card supports **direct inline editing** of scene prompts and descriptions with instant saves; the sidebar can be **collapsed or expanded** to maximize the workspace.
+- **Character profiles & standalone portraits**: Automatically extracts structured character profiles (name, appearance, outfit, personality, role, camera staging) from the script. Supports generating the full ensemble character design sheet as well as **generating single or batch individual character portraits**, complete with thumbnail previews and lightbox viewing.
+- **Decoupled style & dynamic per-cut character reference**: Decouples user style reference images from character design sheets. When generating comic pages, the system automatically detects which characters appear in the segment and **dynamically injects their individual portraits** as strict visual reference constraints, complete with an indicator badge ("Dedicated Portrait Reference / Ensemble Sheet / Style Reference") to ensure character consistency across panels.
+- **Batch generation controls & smart retry**: Generate segment by segment or all at once, with support for 16:9 landscape and 9:16 portrait ratios. Pause or cancel batch generation anytime. Failed segments are automatically tracked with one-click options to "Retry Failed" or "Continue Unfinished".
+- **Art styles**: 17 built-in anime styles (kawaii, shonen, cyberpunk, monochrome manga, webtoon, Chinese guofeng, etc.), or describe your own custom styles and artistic preferences.
+- **Reference images**: Upload up to 3 reference images (PNG, JPG/JPEG, WEBP, HEIC, HEIF) to guide art style, stroke texture, color palette, and lighting atmosphere.
+- **Rich export & stitching**:
+  - **Zero-dependency ZIP export**: Powered by a lightweight pure TypeScript PKZip implementation without external third-party libraries; export story outlines, character design sheets, individual portraits, high-res comic cuts, and segment data in a single clean ZIP archive;
+  - **Webtoon longstrip stitching**: Automatically stitch all comic panel pages into a seamless vertical longstrip image optimized for mobile scrolling;
+  - **Full-size lightbox preview**: Browse full-size images with arrow keys and zoom, or download individual images.
 - **Multi-provider text models**: Besides the default / custom OpenAI-compatible endpoint, presets cover Volcengine Ark (standard API, Agent Plan, Coding Plan), Alibaba Bailian (standard API, Coding Plan), and the official Claude API, each with its own URL, model, and Key.
 - **Image models**: OpenAI-compatible image endpoints, plus native support for Volcengine Seedream 5.0 Pro / Flash and Bailian Qwen Image 2.1 / 3.0.
 - **API configuration**: Override the request URL, text model, image model, and API Key individually in the interface; empty fields inherit deployment defaults.
