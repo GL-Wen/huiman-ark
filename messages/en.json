@@ -110,6 +110,8 @@
   },
   "Sidebar": {
     "storyDescription": "Comic story description:",
+    "templatesLabel": "Inspiration Templates:",
+    "templateApplied": "Template applied",
     "storyPlaceholder": "For example: In a forgotten cyberpunk city, a detective with memory-reading abilities gets entangled in a mysterious conspiracy. Dark style, ruthless characters...",
     "generateStory": "Generate Story Outline",
     "generatingStory": "Generating Story Outline...",
@@ -218,6 +220,10 @@
     "withCharacterReference": "Character design references are attached. Upcoming pages will prioritize the established character look.",
     "withoutCharacterReference": "No character design reference is being used. Pages will be generated directly from the script and style references.",
     "exportAll": "Export Full Comic Set",
+    "exportZip": "Download ZIP Archive",
+    "exportWebtoon": "Export Webtoon Long Strip",
+    "exportSingle": "Download Individual Images",
+    "exporting": "Exporting...",
     "generateAll": "Generate All Comics",
     "generatingAll": "Generating all pages...",
     "stopGeneration": "Stop Generation",
@@ -294,5 +300,11 @@
   "Footer": {
     "subtitle": "AI comic generation workspace",
     "apiPortal": "Get an API key"
+  },
+  "Stepper": {
+    "stepStory": "Story Concept",
+    "stepScript": "Storyboard",
+    "stepCharacters": "Characters",
+    "stepComics": "Comic Pages"
   }
 }

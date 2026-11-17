@@ -4,6 +4,7 @@ import React from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { PanelLeftOpen } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
+import { Stepper } from '@/components/layout/Stepper';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { EmptyCanvas } from '@/components/features/EmptyCanvas';
 import { StoryScriptBoard } from '@/components/features/StoryScriptBoard';
@@ -110,6 +111,7 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans overflow-hidden">
       <Header />
+      <Stepper />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
 

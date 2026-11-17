@@ -110,6 +110,8 @@
   },
   "Sidebar": {
     "storyDescription": "漫画故事描述：",
+    "templatesLabel": "灵感模板：",
+    "templateApplied": "已填充模板",
     "storyPlaceholder": "例如：在一个被遗忘的赛博朋克城市中，一名拥有读取记忆能力的侦探卷入了一场神秘的阴谋。风格偏向暗黑系，角色冷酷果断...",
     "generateStory": "生成故事大纲",
     "generatingStory": "正在生成故事大纲...",
@@ -218,6 +220,10 @@
     "withCharacterReference": "角色设定图已接入，后续漫画会优先参考角色标准造型。",
     "withoutCharacterReference": "当前未使用角色设定图，将直接依据脚本和风格参考生图。",
     "exportAll": "导出整套漫画",
+    "exportZip": "打包下载 ZIP",
+    "exportWebtoon": "导出条漫长图",
+    "exportSingle": "逐张分别下载",
+    "exporting": "正在导出...",
     "generateAll": "生成全部漫画",
     "generatingAll": "正在批量生成...",
     "stopGeneration": "停止生成",
@@ -294,5 +300,11 @@
   "Footer": {
     "subtitle": "AI 漫画生成工作台",
     "apiPortal": "获取 API Key"
+  },
+  "Stepper": {
+    "stepStory": "故事构思",
+    "stepScript": "分镜脚本",
+    "stepCharacters": "角色设定",
+    "stepComics": "漫画原稿"
   }
 }

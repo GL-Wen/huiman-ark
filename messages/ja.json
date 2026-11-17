@@ -110,6 +110,8 @@
   },
   "Sidebar": {
     "storyDescription": "漫画ストーリーの説明：",
+    "templatesLabel": "インスピレーション：",
+    "templateApplied": "テンプレートを適用しました",
     "storyPlaceholder": "例：忘れ去られたサイバーパンクの街で、記憶を読み取る能力を持つ探偵が謎の陰謀に巻き込まれる。ダークな世界観で、キャラクターは冷酷...",
     "generateStory": "ストーリー生成",
     "generatingStory": "ストーリーアウトラインを生成中...",
@@ -218,6 +220,10 @@
     "withCharacterReference": "キャラクター設定図が参照として接続されています。以降のページでは標準キャラクターデザインを優先して参照します。",
     "withoutCharacterReference": "キャラクター設定図は使用されていません。スクリプトとスタイル参照だけで画像を生成します。",
     "exportAll": "漫画セットをエクスポート",
+    "exportZip": "ZIP で一括保存",
+    "exportWebtoon": "縦スクロール長画像",
+    "exportSingle": "画像を個別に保存",
+    "exporting": "エクスポート中...",
     "generateAll": "すべて生成",
     "generatingAll": "一括生成中...",
     "stopGeneration": "生成を中止",
@@ -294,5 +300,11 @@
   "Footer": {
     "subtitle": "AI 漫画制作ワークスペース",
     "apiPortal": "API Key を取得"
+  },
+  "Stepper": {
+    "stepStory": "ストーリー構想",
+    "stepScript": "ネーム脚本",
+    "stepCharacters": "キャラクター設定",
+    "stepComics": "漫画原稿"
   }
 }

@@ -16,6 +16,120 @@ import {
 } from '../../api/llm';
 import { animeStyleOptions, getAnimeStylePrompt } from '../../lib/animeStyles';
 
+const INSPIRATION_TEMPLATES: Record<
+  AppLocale,
+  Array<{
+    label: string;
+    emoji: string;
+    animeStyle: string;
+    style: string;
+    story: string;
+  }>
+> = {
+  zh: [
+    {
+      label: '赛博暗黑',
+      emoji: '🌆',
+      animeStyle: 'cyberpunk',
+      style: '暗黑悬疑、雨夜霓虹、冷色调、高科技与低生活反差',
+      story:
+        '在一个被超级财阀垄断的未来城市中，拥有读取记忆芯片能力的落魄侦探，在暴雨夜接到了一桩寻找失踪AI歌姬的神秘委托。深入调查后，他发现歌姬的记忆芯片中隐藏着足以颠覆整座城市的禁忌真相...',
+    },
+    {
+      label: '国风仙侠',
+      emoji: '🏮',
+      animeStyle: 'guofeng',
+      style: '东方武侠、水墨留白、青竹剑影、孤舟江雪',
+      story:
+        '名剑山庄破落后，少年剑客带着父亲留下的残缺古剑孤身下山。在一间大雪纷飞的荒野客栈中，他偶遇女扮男装的神秘魔门少女，两人阴差阳错结伴而行，卷入一场波及九大门派的武林至宝争夺...',
+    },
+    {
+      label: '青春治愈',
+      emoji: '🌸',
+      animeStyle: 'slice-of-life',
+      style: '温暖日常、初夏微风、夕阳余晖、柔和漫射光',
+      story:
+        '高中毕业前夕的初夏午后，学校美术社仅剩两名成员。性格内敛的少女鼓起全部勇气，邀请从小一起长大的青梅竹马到放学后的天台，想在夕阳落山前为他画一张特别的毕业肖像，空气中弥漫着淡淡的栀子花香...',
+    },
+    {
+      label: '奇幻热血',
+      emoji: '⚔️',
+      animeStyle: 'fantasy',
+      style: '魔法史诗、宏大遗迹、神秘符文、灿烂魔力光芒',
+      story:
+        '皇家大图书馆的见习管理员在整理禁忌书库时，意外触碰了一本散发着蔚蓝星光的古老法典，转生到了魔力复苏的浮空大陆。在这里，他不仅能看懂失传的古神语，还成为了一只沉睡万年的幼年守护龙的唯一契约者...',
+    },
+  ],
+  en: [
+    {
+      label: 'Cyberpunk',
+      emoji: '🌆',
+      animeStyle: 'cyberpunk',
+      style: 'Dark noir, rainy neon streets, cool tones, gritty cyberpunk',
+      story:
+        'In a futuristic metropolis dominated by megacorporations, a washed-up detective with the illegal ability to read memory chips takes a mysterious case to find a missing AI idol on a rainy night, only to uncover a forbidden conspiracy that could bring down the city...',
+    },
+    {
+      label: 'Ancient Wuxia',
+      emoji: '🏮',
+      animeStyle: 'guofeng',
+      style: 'Traditional ink wash, bamboo forests, flowing robes, poetic martial arts',
+      story:
+        'After the fall of his renowned sword sect, a young swordsman ventures down the mountain with his late father’s broken blade. At a snow-covered wilderness inn, he encounters a mysterious disguised girl from a rival clan, pulling them into a battle for ancient martial treasures...',
+    },
+    {
+      label: 'Slice of Life',
+      emoji: '🌸',
+      animeStyle: 'slice-of-life',
+      style: 'Warm daylight, soft breeze, golden hour rooftop, gentle pastel tones',
+      story:
+        'On an early summer afternoon right before graduation, the quiet high school art club member gathers the courage to invite her childhood friend to the rooftop after school, wishing to paint a graduation portrait of him under the golden sunset...',
+    },
+    {
+      label: 'Fantasy Epic',
+      emoji: '⚔️',
+      animeStyle: 'fantasy',
+      style: 'High fantasy, glowing runes, floating isles, vibrant magical aura',
+      story:
+        'An apprentice royal archivist accidentally activates a glowing celestial grimoire in the forbidden archives, awakening on a floating continent where magic has just returned. Possessing forgotten ancient knowledge, he forms an accidental soul bond with a dormant dragon whelp...',
+    },
+  ],
+  ja: [
+    {
+      label: 'サイバーパンク',
+      emoji: '🌆',
+      animeStyle: 'cyberpunk',
+      style: 'ダークノワール、雨夜のネオン、冷色調、退廃的な近未来都市',
+      story:
+        '巨大企業に支配された近未来都市で、記憶チップを読み取る禁断の能力を持つうらぶれた探偵が、雨の夜に失踪したAI歌姫の捜索依頼を受ける。調査が進むにつれ、その記憶に都市全体を揺るがす重大な秘密が眠っていることを知る...',
+    },
+    {
+      label: '中華古風',
+      emoji: '🏮',
+      animeStyle: 'guofeng',
+      style: '東洋水墨画風、竹林と剣戟、雪の宿場町、詩情あふれる武侠',
+      story:
+        '名門の剣術道場が没落した後、父の形見の折れた古剣を背負った少年剣士が山を下りる。吹雪の荒野の宿場で男装した謎の魔門の少女と出会い、武林の至宝をめぐる争いに巻き込まれていく...',
+    },
+    {
+      label: '日常・青春',
+      emoji: '🌸',
+      animeStyle: 'slice-of-life',
+      style: '初夏の爽やかな光、夕焼けの屋上、柔らかな色彩、甘酸っぱい青春',
+      story:
+        '高校卒業を間近に控えた初夏の放課後、美術部の少女は小さな勇気を振り絞り、幼馴染の少年を夕暮れの屋上に誘う。沈みゆく夕日の中で、彼への特別な卒業記念の肖像画を描き始める...',
+    },
+    {
+      label: '異世界ファンタジー',
+      emoji: '⚔️',
+      animeStyle: 'fantasy',
+      style: '壮大な魔法世界、古代ルーン文字、浮遊大陸、神秘的な輝き',
+      story:
+        '王立図書館の見習い司書が禁断の書庫で青い光を放つ古文書に触れ、魔力が蘇りつつある浮空大陸へと転移してしまう。失われた神聖文字を唯一解読できる彼は、数万年の眠りから目覚めた幼き守護竜と契約を結ぶ...',
+    },
+  ],
+};
+
 const MIN_SCENE_COUNT = 1;
 const MAX_SCENE_COUNT = 100;
 const DEFAULT_PANELS_PER_PARAGRAPH = '3~6';
@@ -389,6 +503,28 @@ export const Sidebar: React.FC = () => {
           </button>
         </div>
         <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            <span className="text-[10px] text-gray-400 shrink-0 flex items-center">
+              <Sparkles className="w-2.5 h-2.5 text-indigo-400 mr-0.5" />
+              {t('templatesLabel')}
+            </span>
+            {(INSPIRATION_TEMPLATES[locale] || INSPIRATION_TEMPLATES.zh).map((tmpl) => (
+              <button
+                key={tmpl.label}
+                type="button"
+                onClick={() => {
+                  setStoryInput(tmpl.story);
+                  setAnimeStyle(tmpl.animeStyle);
+                  setStyle(tmpl.style);
+                }}
+                className="px-2 py-0.5 rounded text-[11px] bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 text-gray-600 hover:text-indigo-600 transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+                title={`${tmpl.label} - ${tmpl.style}`}
+              >
+                <span>{tmpl.emoji}</span>
+                <span>{tmpl.label}</span>
+              </button>
+            ))}
+          </div>
           <textarea
             ref={textareaRef}
             value={storyInput}

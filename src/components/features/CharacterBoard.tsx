@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAppStore, ScriptSegment } from '../../store';
-import { Users, Download, PlaySquare, RefreshCw, ChevronLeft, RotateCcw, Square, Pencil, Check, X } from 'lucide-react';
+import { Users, Download, PlaySquare, RefreshCw, ChevronLeft, RotateCcw, Square, Pencil, Check, X, Archive, FileImage, ChevronDown } from 'lucide-react';
+import { createZipArchive, base64ToUint8Array } from '../../lib/zip.ts';
+import { stitchComicsToBlob } from '../../lib/stitchComics.ts';
 import { ImageLightbox, type ImageLightboxItem } from '../common/ImageLightbox';
 import {
   buildComicPagePrompt,
@@ -61,6 +63,8 @@ export const CharacterBoard: React.FC = () => {
   const [generatingAllIndex, setGeneratingAllIndex] = useState(-1);
   const [isRegeneratingCharacterSheet, setIsRegeneratingCharacterSheet] = useState(false);
   const [lightboxState, setLightboxState] = useState<{ items: ImageLightboxItem[]; index: number } | null>(null);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [editingScriptId, setEditingScriptId] = useState<string | null>(null);
   const [draftScriptRaw, setDraftScriptRaw] = useState('');
   const autoRunRef = useRef<string | null>(null);
@@ -279,6 +283,75 @@ export const CharacterBoard: React.FC = () => {
       window.setTimeout(() => downloadImage(item.url, item.filename), index * 250);
     });
   }, [generatedComics, generatedScript, t]);
+
+  const handleExportZip = useCallback(async () => {
+    setIsExporting(true);
+    setIsExportMenuOpen(false);
+    try {
+      const files: Array<{ name: string; data: Uint8Array }> = [];
+      if (characterDesignImage) {
+        files.push({
+          name: '00-character-design-sheet.png',
+          data: base64ToUint8Array(characterDesignImage),
+        });
+      }
+      generatedScript.forEach((script, index) => {
+        const image = generatedComics[script.id];
+        if (image) {
+          files.push({
+            name: `${String(index + 1).padStart(2, '0')}-${script.cut.toLowerCase().replace(/\s+/g, '-')}.png`,
+            data: base64ToUint8Array(image),
+          });
+        }
+      });
+
+      if (!files.length) {
+        alert(t('alerts.noExportableImages'));
+        return;
+      }
+
+      const zipBytes = createZipArchive(files);
+      const blob = new Blob([zipBytes], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      downloadImage(url, 'huiman-ark-comics.zip');
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [characterDesignImage, generatedComics, generatedScript, t]);
+
+  const handleExportWebtoon = useCallback(async () => {
+    setIsExporting(true);
+    setIsExportMenuOpen(false);
+    try {
+      const items: Array<{ src: string }> = [];
+      generatedScript.forEach((script) => {
+        const image = generatedComics[script.id];
+        if (image) {
+          items.push({ src: image });
+        }
+      });
+
+      if (!items.length) {
+        alert(t('alerts.noExportableImages'));
+        return;
+      }
+
+      const blob = await stitchComicsToBlob(items, {
+        targetWidth: ratio === '9:16' ? 1080 : 1920,
+        gap: 16,
+      });
+      const url = URL.createObjectURL(blob);
+      downloadImage(url, 'huiman-ark-webtoon-strip.png');
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [generatedComics, generatedScript, ratio, t]);
 
   const handleRegenerateCharacterSheet = useCallback(
     async () => {
@@ -511,17 +584,61 @@ export const CharacterBoard: React.FC = () => {
             <ChevronLeft className="w-3.5 h-3.5 mr-1" />
             {t('backToScript')}
           </button>
-          <button
-            onClick={handleExportAll}
-            disabled={completedCount === 0}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              completedCount === 0
-                ? 'text-gray-300 cursor-not-allowed'
-                : 'text-gray-600 border border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            {t('exportAll')}
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsExportMenuOpen((prev) => !prev)}
+              disabled={completedCount === 0 || isExporting}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
+                completedCount === 0 || isExporting
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-700 border border-gray-200 hover:bg-gray-50 cursor-pointer'
+              }`}
+            >
+              <Download className="w-3.5 h-3.5 text-gray-500" />
+              <span>{isExporting ? t('exporting') : t('exportAll')}</span>
+              <ChevronDown className="w-3 h-3 text-gray-400" />
+            </button>
+
+            {isExportMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsExportMenuOpen(false)}
+                />
+                <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={handleExportZip}
+                    className="w-full px-3 py-2 text-left text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Archive className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>{t('exportZip')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportWebtoon}
+                    className="w-full px-3 py-2 text-left text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <FileImage className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>{t('exportWebtoon')}</span>
+                  </button>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsExportMenuOpen(false);
+                      handleExportAll();
+                    }}
+                    className="w-full px-3 py-2 text-left text-gray-500 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-gray-400" />
+                    <span>{t('exportSingle')}</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           {failedScripts.length > 0 && !isGeneratingAll && (
             <button
               onClick={handleRetryFailed}
