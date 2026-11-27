@@ -11,14 +11,17 @@ import {
   generateImage,
   generateCharacterAssets,
   generateCharacterPortraits,
+  getMaxReferenceImages,
   parseCharacterProfiles,
+  parseSegmentFields,
   pickComicCharacterProfiles,
   sanitizeCharacterDesignText,
+  sanitizeStorySegmentText,
   type CharacterReferenceMode,
   type CharacterProfile,
 } from '../../api/llm';
 import { getAnimeStylePrompt } from '../../lib/animeStyles';
-import { getTextApiConfig } from '../../lib/textProviders.ts';
+import { getImageApiConfig, getTextApiConfig } from '../../lib/textProviders.ts';
 
 const downloadImage = (url: string, filename: string) => {
   const link = document.createElement('a');
@@ -35,7 +38,6 @@ export const CharacterBoard: React.FC = () => {
   const t = useTranslations('CharacterBoard');
   const {
     apiKey,
-    hasDefaultApiKey,
     openApiSettings,
     currentStep,
     setCurrentStep,
@@ -56,6 +58,7 @@ export const CharacterBoard: React.FC = () => {
     setPendingComicId,
     storyInput,
     language,
+    panelsPerParagraph,
     ratio,
     animeStyle,
     customAnimeStyle,
@@ -157,8 +160,11 @@ export const CharacterBoard: React.FC = () => {
 
       const matchedNames = matchedProfiles.map((m) => m.profile.name);
 
+      const state = useAppStore.getState();
+      const maxRefs = getMaxReferenceImages(getImageApiConfig(state).model || state.defaultImageModel);
       const availablePortraits = matchedProfiles
         .filter((m) => Boolean(characterPortraits[m.profile.name]))
+        .slice(0, maxRefs)
         .map((m) => ({
           name: m.profile.name,
           image: characterPortraits[m.profile.name],
@@ -219,7 +225,7 @@ export const CharacterBoard: React.FC = () => {
         manageStep?: boolean;
       } = {},
     ) => {
-      if (!apiKey.trim() && !hasDefaultApiKey) {
+      if (!getImageApiConfig(useAppStore.getState()).hasApiKey) {
         openApiSettings();
         return;
       }
@@ -249,6 +255,7 @@ export const CharacterBoard: React.FC = () => {
           style,
           characterReferenceMode: mode,
           portraitNames,
+          panelsPerParagraph,
         });
         const imageUrl = await generateImage(apiKey, prompt, {
           referenceImages: images,
@@ -286,7 +293,6 @@ export const CharacterBoard: React.FC = () => {
     },
     [
       apiKey,
-      hasDefaultApiKey,
       buildReferenceImages,
       characterDesign,
       characterNames,
@@ -294,6 +300,7 @@ export const CharacterBoard: React.FC = () => {
       animeStyle,
       customAnimeStyle,
       language,
+      panelsPerParagraph,
       openApiSettings,
       ratio,
       resolveStepAfterSingle,
@@ -329,17 +336,34 @@ export const CharacterBoard: React.FC = () => {
     });
   }, [generatedComics, generatedScript, t]);
 
+  const hasExportableAssets = useMemo(
+    () => completedCount > 0 || Boolean(characterDesignImage) || Object.keys(characterPortraits).length > 0,
+    [characterDesignImage, characterPortraits, completedCount],
+  );
+
   const handleExportZip = useCallback(async () => {
     setIsExporting(true);
     setIsExportMenuOpen(false);
     try {
+      const encoder = new TextEncoder();
       const files: Array<{ name: string; data: Uint8Array }> = [];
+
       if (characterDesignImage) {
         files.push({
           name: '00-character-design-sheet.png',
           data: base64ToUint8Array(characterDesignImage),
         });
       }
+
+      const portraitEntries = Object.entries(characterPortraits).filter(([key, value]) => Boolean(value) && !/#\d+$/.test(key));
+      portraitEntries.forEach(([name, image], index) => {
+        const safeName = name.replace(/[\\/:*?"<>|]+/g, '_').trim() || `character-${index + 1}`;
+        files.push({
+          name: `portraits/${String(index + 1).padStart(2, '0')}-${safeName}.png`,
+          data: base64ToUint8Array(image),
+        });
+      });
+
       generatedScript.forEach((script, index) => {
         const image = generatedComics[script.id];
         if (image) {
@@ -355,8 +379,20 @@ export const CharacterBoard: React.FC = () => {
         return;
       }
 
+      const outlineSections = [
+        `# Story\n\n${storyInput || ''}`,
+        displayCharacterDesign ? `## Characters\n\n${displayCharacterDesign}` : '',
+        generatedScript.length
+          ? `## Storyboard\n\n${generatedScript.map((s, idx) => `### ${s.cut} - ${s.title || getDefaultTitle(idx + 1)}\n\n${s.raw}`).join('\n\n')}`
+          : '',
+      ].filter(Boolean).join('\n\n---\n\n');
+      files.unshift(
+        { name: '00-story-outline.md', data: encoder.encode(outlineSections) },
+        { name: '00-storyboard.json', data: encoder.encode(JSON.stringify(generatedScript, null, 2)) },
+      );
+
       const zipBytes = createZipArchive(files);
-      const blob = new Blob([zipBytes], { type: 'application/zip' });
+      const blob = new Blob([zipBytes as BlobPart], { type: 'application/zip' });
       const url = URL.createObjectURL(blob);
       downloadImage(url, 'huiman-ark-comics.zip');
       URL.revokeObjectURL(url);
@@ -365,7 +401,7 @@ export const CharacterBoard: React.FC = () => {
     } finally {
       setIsExporting(false);
     }
-  }, [characterDesignImage, generatedComics, generatedScript, t]);
+  }, [characterDesignImage, characterPortraits, displayCharacterDesign, generatedComics, generatedScript, getDefaultTitle, storyInput, t]);
 
   const handleExportWebtoon = useCallback(async () => {
     setIsExporting(true);
@@ -400,7 +436,8 @@ export const CharacterBoard: React.FC = () => {
 
   const handleRegenerateCharacterSheet = useCallback(
     async () => {
-      if ((!apiKey.trim() && !hasDefaultApiKey) || (!displayCharacterDesign && !getTextApiConfig(useAppStore.getState()).hasApiKey)) {
+      const state = useAppStore.getState();
+      if (!getImageApiConfig(state).hasApiKey || (!displayCharacterDesign && !getTextApiConfig(state).hasApiKey)) {
         openApiSettings();
         return;
       }
@@ -437,7 +474,6 @@ export const CharacterBoard: React.FC = () => {
     },
     [
       apiKey,
-      hasDefaultApiKey,
       animeStyle,
       characterDesign,
       customAnimeStyle,
@@ -459,7 +495,7 @@ export const CharacterBoard: React.FC = () => {
 
   const handleGenerateSinglePortrait = useCallback(
     async (profile: CharacterProfile) => {
-      if (!apiKey.trim() && !hasDefaultApiKey) {
+      if (!getImageApiConfig(useAppStore.getState()).hasApiKey) {
         openApiSettings();
         return;
       }
@@ -500,7 +536,6 @@ export const CharacterBoard: React.FC = () => {
       characterDesignImage,
       customAnimeStyle,
       displayCharacterDesign,
-      hasDefaultApiKey,
       language,
       openApiSettings,
       referenceImages,
@@ -512,7 +547,7 @@ export const CharacterBoard: React.FC = () => {
 
   const handleGenerateAllPortraits = useCallback(async () => {
     if (!characterProfiles.length) return;
-    if (!apiKey.trim() && !hasDefaultApiKey) {
+    if (!getImageApiConfig(useAppStore.getState()).hasApiKey) {
       openApiSettings();
       return;
     }
@@ -539,7 +574,7 @@ export const CharacterBoard: React.FC = () => {
         setCharacterPortraits({ ...characterPortraits, ...normalizedPortraits });
       }
       if (failures.length) {
-        alert(`部分立绘生成失败：\n${failures.join('\n')}`);
+        alert(`${t('alerts.portraitPartialFailed')}\n${failures.join('\n')}`);
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : t('alerts.characterDesignFailed'));
@@ -555,7 +590,6 @@ export const CharacterBoard: React.FC = () => {
     characterProfiles,
     customAnimeStyle,
     displayCharacterDesign,
-    hasDefaultApiKey,
     language,
     openApiSettings,
     referenceImages,
@@ -568,105 +602,81 @@ export const CharacterBoard: React.FC = () => {
     return generatedScript.filter((script) => Boolean(generationErrors[script.id]));
   }, [generatedScript, generationErrors]);
 
+  const unfinishedScripts = useMemo(() => {
+    return generatedScript.filter((script) => !generatedComics[script.id]);
+  }, [generatedComics, generatedScript]);
+
   const handleCancelGenerateAll = useCallback(() => {
     cancelGenerateAllRef.current = true;
     setIsCancellingAll(true);
   }, []);
 
+  const runBatchScripts = useCallback(
+    async (scriptsToRun: ScriptSegment[]) => {
+      if (!scriptsToRun.length) {
+        return;
+      }
+
+      if (!getImageApiConfig(useAppStore.getState()).hasApiKey) {
+        openApiSettings();
+        return;
+      }
+
+      cancelGenerateAllRef.current = false;
+      setIsCancellingAll(false);
+      setIsGeneratingAll(true);
+      setCurrentStep('generating_comics');
+      setPendingComicId(null);
+
+      let hasError = false;
+
+      for (let i = 0; i < scriptsToRun.length; i++) {
+        if (cancelGenerateAllRef.current) {
+          break;
+        }
+        const targetScript = scriptsToRun[i];
+        const targetIndex = generatedScript.findIndex((s) => s.id === targetScript.id);
+        setGeneratingAllIndex(targetIndex >= 0 ? targetIndex : i);
+        try {
+          await handleGenerateComic(targetScript, {
+            silent: true,
+            manageStep: false,
+          });
+        } catch {
+          hasError = true;
+        }
+      }
+
+      const wasCancelled = cancelGenerateAllRef.current;
+      setGeneratingAllIndex(-1);
+      setIsGeneratingAll(false);
+      setIsCancellingAll(false);
+      cancelGenerateAllRef.current = false;
+
+      const latestComics = useAppStore.getState().generatedComics;
+      const allDoneNow = generatedScript.length > 0 && generatedScript.every((s) => Boolean(latestComics[s.id]));
+      setCurrentStep(!hasError && !wasCancelled && allDoneNow ? 'done' : 'characters_done');
+
+      if (hasError && !wasCancelled) {
+        alert(t('alerts.partialFailed'));
+      }
+    },
+    [generatedScript, handleGenerateComic, openApiSettings, setCurrentStep, setPendingComicId, t],
+  );
+
   const handleGenerateAll = useCallback(async () => {
-    if (!generatedScript.length) {
-      return;
-    }
+    await runBatchScripts(generatedScript);
+  }, [generatedScript, runBatchScripts]);
 
-    if (!apiKey.trim() && !hasDefaultApiKey) {
-      openApiSettings();
-      return;
-    }
-
-    cancelGenerateAllRef.current = false;
-    setIsCancellingAll(false);
-    setIsGeneratingAll(true);
-    setCurrentStep('generating_comics');
-    setPendingComicId(null);
-
-    let hasError = false;
-
-    for (let i = 0; i < generatedScript.length; i++) {
-      if (cancelGenerateAllRef.current) {
-        break;
-      }
-      setGeneratingAllIndex(i);
-      try {
-        await handleGenerateComic(generatedScript[i], {
-          silent: true,
-          manageStep: false,
-        });
-      } catch {
-        hasError = true;
-      }
-    }
-
-    const wasCancelled = cancelGenerateAllRef.current;
-    setGeneratingAllIndex(-1);
-    setIsGeneratingAll(false);
-    setIsCancellingAll(false);
-    cancelGenerateAllRef.current = false;
-
-    setCurrentStep(hasError || wasCancelled ? 'characters_done' : 'done');
-
-    if (hasError && !wasCancelled) {
-      alert(t('alerts.partialFailed'));
-    }
-  }, [apiKey, hasDefaultApiKey, generatedScript, handleGenerateComic, openApiSettings, setCurrentStep, setPendingComicId, t]);
+  const handleContinueUnfinished = useCallback(async () => {
+    await runBatchScripts(unfinishedScripts);
+  }, [runBatchScripts, unfinishedScripts]);
 
   const handleRetryFailed = useCallback(async () => {
-    if (!failedScripts.length) {
-      return;
-    }
+    await runBatchScripts(failedScripts);
+  }, [failedScripts, runBatchScripts]);
 
-    if (!apiKey.trim() && !hasDefaultApiKey) {
-      openApiSettings();
-      return;
-    }
-
-    cancelGenerateAllRef.current = false;
-    setIsCancellingAll(false);
-    setIsGeneratingAll(true);
-    setCurrentStep('generating_comics');
-    setPendingComicId(null);
-
-    let stillHasError = false;
-
-    for (let i = 0; i < failedScripts.length; i++) {
-      if (cancelGenerateAllRef.current) {
-        break;
-      }
-      const targetScript = failedScripts[i];
-      const targetIndex = generatedScript.findIndex((s) => s.id === targetScript.id);
-      setGeneratingAllIndex(targetIndex >= 0 ? targetIndex : i);
-
-      try {
-        await handleGenerateComic(targetScript, {
-          silent: true,
-          manageStep: false,
-        });
-      } catch {
-        stillHasError = true;
-      }
-    }
-
-    const wasCancelled = cancelGenerateAllRef.current;
-    setGeneratingAllIndex(-1);
-    setIsGeneratingAll(false);
-    setIsCancellingAll(false);
-    cancelGenerateAllRef.current = false;
-
-    setCurrentStep(stillHasError || wasCancelled ? 'characters_done' : 'done');
-
-    if (stillHasError && !wasCancelled) {
-      alert(t('alerts.partialFailed'));
-    }
-  }, [apiKey, failedScripts, generatedScript, handleGenerateComic, hasDefaultApiKey, openApiSettings, setCurrentStep, setPendingComicId, t]);
+  const imageApiReady = useAppStore((s) => getImageApiConfig(s).hasApiKey);
 
   useEffect(() => {
     if (currentStep !== 'generating_comics' || !pendingComicId) {
@@ -674,7 +684,7 @@ export const CharacterBoard: React.FC = () => {
       return;
     }
 
-    if (!apiKey.trim() && !hasDefaultApiKey) {
+    if (!imageApiReady) {
       openApiSettings();
       return;
     }
@@ -700,12 +710,11 @@ export const CharacterBoard: React.FC = () => {
 
     handleGenerateComic(targetScript, { silent: true, manageStep: true }).catch(() => undefined);
   }, [
-    apiKey,
-    hasDefaultApiKey,
     currentStep,
     generatedScript,
     handleGenerateAll,
     handleGenerateComic,
+    imageApiReady,
     openApiSettings,
     pendingComicId,
     setCurrentStep,
@@ -740,9 +749,9 @@ export const CharacterBoard: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsExportMenuOpen((prev) => !prev)}
-              disabled={completedCount === 0 || isExporting}
+              disabled={!hasExportableAssets || isExporting}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
-                completedCount === 0 || isExporting
+                !hasExportableAssets || isExporting
                   ? 'text-gray-300 cursor-not-allowed'
                   : 'text-gray-700 border border-gray-200 hover:bg-gray-50 cursor-pointer'
               }`}
@@ -811,12 +820,27 @@ export const CharacterBoard: React.FC = () => {
               {isCancellingAll ? t('stopping') : t('stopGeneration')}
             </button>
           ) : (
-            <button
-              onClick={handleGenerateAll}
-              className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-700"
-            >
-              {t('generateAll')}
-            </button>
+            <>
+              {completedCount > 0 && unfinishedScripts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleContinueUnfinished}
+                  className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-700"
+                >
+                  {t('continueUnfinished', { count: unfinishedScripts.length })}
+                </button>
+              )}
+              <button
+                onClick={handleGenerateAll}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  completedCount > 0 && unfinishedScripts.length > 0
+                    ? 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {t('generateAll')}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -884,7 +908,7 @@ export const CharacterBoard: React.FC = () => {
               <div className="min-h-0 bg-white flex flex-col">
                 <div className="px-4 py-2.5 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between">
                   <span className="text-xs font-semibold text-gray-700">
-                    角色档案（{characterProfiles.length}人）
+                    {t('characterProfilesCount', { count: characterProfiles.length })}
                   </span>
                   <button
                     type="button"
@@ -1038,20 +1062,20 @@ export const CharacterBoard: React.FC = () => {
                 <div className="flex items-center gap-1 min-w-0 text-gray-500">
                   <Users className="w-3 h-3 text-gray-400 shrink-0" />
                   <span className="truncate">
-                    {matchedCharacters.length ? matchedCharacters.join('、') : '场景/空镜'}
+                    {matchedCharacters.length ? matchedCharacters.join('、') : t('emptySceneBadge')}
                   </span>
                 </div>
                 {hasMatchedPortrait ? (
                   <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">
-                    专属立绘参考
+                    {t('badgePortraitRef')}
                   </span>
                 ) : characterDesignImage ? (
                   <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
-                    全家福参考
+                    {t('badgeSheetRef')}
                   </span>
                 ) : referenceImages.length ? (
                   <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">
-                    画风参考图
+                    {t('badgeStyleRef')}
                   </span>
                 ) : null}
               </div>
@@ -1103,13 +1127,18 @@ export const CharacterBoard: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          updateScriptSegment(script.id, { raw: draftScriptRaw.trim() });
+                          const trimmedRaw = draftScriptRaw.trim();
+                          const cleanedRaw = sanitizeStorySegmentText(trimmedRaw) || trimmedRaw;
+                          updateScriptSegment(script.id, {
+                            raw: cleanedRaw,
+                            ...parseSegmentFields(cleanedRaw),
+                          });
                           setEditingScriptId(null);
                         }}
                         className="px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-600 text-white hover:bg-indigo-700 flex items-center"
                       >
                         <Check className="w-3 h-3 mr-1" />
-                        {t('download') === '下载' ? '保存' : t('download') === 'ダウンロード' ? '保存' : 'Save'}
+                        {t('save')}
                       </button>
                     </div>
                   </div>

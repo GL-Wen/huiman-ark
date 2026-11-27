@@ -121,6 +121,32 @@ test('API overrides persist, credentials and server defaults stay in memory, and
     assert.equal(useAppStore.getState().characterPortraits['Alice'], 'data:image/png;base64,alice');
     useAppStore.getState().setCharacterPortraits({ Bob: 'data:image/png;base64,bob' });
     assert.equal(useAppStore.getState().characterPortraits['Bob'], 'data:image/png;base64,bob');
+
+    // Test opt-in rememberApiKey and image provider key sharing
+    const { getImageApiConfig, createImageProviderConfigs } = await import('../lib/textProviders.ts');
+    const textConfigsWithVolc = {
+      ...useAppStore.getState().textProviderConfigs,
+      volcengine: { ...useAppStore.getState().textProviderConfigs.volcengine, apiKey: 'shared-volc-key' },
+    };
+    useAppStore.getState().setTextApiSettings('volcengine', textConfigsWithVolc);
+    useAppStore.getState().setImageApiSettings('volcengine', createImageProviderConfigs());
+    assert.equal(getImageApiConfig(useAppStore.getState()).apiKey, 'shared-volc-key');
+    assert.equal(getImageApiConfig(useAppStore.getState()).model, 'doubao-seedream-5-0-flash-260915');
+
+    useAppStore.getState().setRememberApiKey(true);
+    useAppStore.getState().setApiKey('persisted-local-key');
+    const savedWithKey = JSON.parse(values.get('huiman-ark-storage')!).state;
+    assert.equal(savedWithKey.rememberApiKey, true);
+    assert.equal(savedWithKey.apiKey, 'persisted-local-key');
+    assert.equal(savedWithKey.textProviderConfigs.volcengine.apiKey, 'shared-volc-key');
+
+    const rawBeforeReload = values.get('huiman-ark-storage')!;
+    useAppStore.getState().resetApiOverrides();
+    assert.equal(useAppStore.getState().apiKey, '');
+    values.set('huiman-ark-storage', rawBeforeReload);
+    await useAppStore.persist.rehydrate();
+    assert.equal(useAppStore.getState().apiKey, 'persisted-local-key');
+    assert.equal(useAppStore.getState().textProviderConfigs.volcengine.apiKey, 'shared-volc-key');
   } finally {
     Reflect.deleteProperty(globalThis, 'window');
   }

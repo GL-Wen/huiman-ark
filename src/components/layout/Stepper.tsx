@@ -7,7 +7,7 @@ import { Check, Sparkles, FileText, Users, Image as ImageIcon } from 'lucide-rea
 
 export const Stepper: React.FC = () => {
   const t = useTranslations('Stepper');
-  const { currentStep, setCurrentStep, generatedScript, characterDesign, characterDesignImage } = useAppStore();
+  const { currentStep, setCurrentStep, generatedScript, characterDesign, characterDesignImage, setSidebarCollapsed } = useAppStore();
 
   const steps = [
     {
@@ -17,12 +17,12 @@ export const Stepper: React.FC = () => {
       stepKey: 'initial' as Step,
       isCompleted: generatedScript.length > 0 || currentStep !== 'initial',
       isActive: currentStep === 'initial' || currentStep === 'generating_story',
-      isClickable: true,
+      isClickable: currentStep !== 'generating_story' && currentStep !== 'generating_characters' && currentStep !== 'generating_comics',
       onClick: () => {
-        // Can always jump back to initial/view input
         if (currentStep !== 'generating_story' && currentStep !== 'generating_characters' && currentStep !== 'generating_comics') {
-          if (generatedScript.length > 0) {
-            // Keep state, let user review sidebar
+          setSidebarCollapsed(false);
+          if (!generatedScript.length) {
+            setCurrentStep('initial');
           }
         }
       },

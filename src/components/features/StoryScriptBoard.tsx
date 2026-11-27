@@ -4,11 +4,12 @@ import { useAppStore } from '../../store';
 import {
   generateCharacterAssets,
   isInvalidStoryMetaBlock,
+  parseSegmentFields,
   sanitizeStorySegmentText,
 } from '../../api/llm';
 import { Users, FastForward, PlaySquare, Pencil, Check, X } from 'lucide-react';
 import { getAnimeStylePrompt } from '../../lib/animeStyles';
-import { getTextApiConfig } from '../../lib/textProviders.ts';
+import { getImageApiConfig, getTextApiConfig } from '../../lib/textProviders.ts';
 
 const getSegmentDisplayContent = (raw: string) => sanitizeStorySegmentText(raw);
 const normalizeSegments = <T extends { title: string; raw: string }>(
@@ -34,7 +35,6 @@ export const StoryScriptBoard: React.FC = () => {
     updateScriptSegment,
     setCurrentStep,
     apiKey,
-    hasDefaultApiKey,
     openApiSettings,
     ratio,
     language,
@@ -59,7 +59,8 @@ export const StoryScriptBoard: React.FC = () => {
   }, [generatedScript, getDefaultTitle, setGeneratedScript]);
 
   const handleGenerateCharacters = async () => {
-    if ((!apiKey.trim() && !hasDefaultApiKey) || !getTextApiConfig(useAppStore.getState()).hasApiKey) {
+    const state = useAppStore.getState();
+    if (!getImageApiConfig(state).hasApiKey || !getTextApiConfig(state).hasApiKey) {
       openApiSettings();
       return;
     }
@@ -96,7 +97,7 @@ export const StoryScriptBoard: React.FC = () => {
   };
 
   const handleSkipToComics = () => {
-    if (!apiKey.trim() && !hasDefaultApiKey) {
+    if (!getImageApiConfig(useAppStore.getState()).hasApiKey) {
       openApiSettings();
       return;
     }
@@ -110,7 +111,7 @@ export const StoryScriptBoard: React.FC = () => {
   };
 
   const handleGenerateSingleComic = (scriptId: string) => {
-    if (!apiKey.trim() && !hasDefaultApiKey) {
+    if (!getImageApiConfig(useAppStore.getState()).hasApiKey) {
       openApiSettings();
       return;
     }
@@ -126,9 +127,12 @@ export const StoryScriptBoard: React.FC = () => {
   };
 
   const handleSaveEdit = (scriptId: string) => {
+    const trimmedRaw = draftRaw.trim();
+    const cleanedRaw = sanitizeStorySegmentText(trimmedRaw) || trimmedRaw;
     updateScriptSegment(scriptId, {
       title: draftTitle.trim(),
-      raw: draftRaw.trim(),
+      raw: cleanedRaw,
+      ...parseSegmentFields(cleanedRaw),
     });
     setEditingId(null);
   };

@@ -9,12 +9,14 @@ import {
   extractStorySegmentTitle,
   generateContent,
   isInvalidStoryMetaBlock,
+  parseSegmentFields,
   sanitizeStorySegmentText,
   STORY_EXPERT_PROMPT,
   SUPPORTED_REFERENCE_IMAGE_ACCEPT,
   SUPPORTED_REFERENCE_IMAGE_MIME_TYPES,
 } from '../../api/llm';
 import { animeStyleOptions, getAnimeStylePrompt } from '../../lib/animeStyles';
+import { Select } from '../common/Select';
 
 const INSPIRATION_TEMPLATES: Record<
   AppLocale,
@@ -208,19 +210,15 @@ const parseScriptSegments = (result: string, getDefaultTitle: (index: number) =>
     .map((block, index) => {
       const cleanedBlock = sanitizeStorySegmentText(block);
       const title = extractStorySegmentTitle(block);
-      const sceneMatch = cleanedBlock.match(/(?:场景|Scene)[:：](.*?)(?=\n|$)/i);
-      const plotMatch = cleanedBlock.match(/(?:情节概述|剧情|Plot)[:：](.*?)(?=\n|$)/i);
-      const descMatch = cleanedBlock.match(
-        /(?:画面描述|分镜描述|Visual)[:：]([\s\S]*?)(?=\n(?:本段落|分格建议|第\d+格)|$)/i,
-      );
+      const { scene, plot, desc } = parseSegmentFields(cleanedBlock);
 
       return {
         id: `cut-${index + 1}`,
         title: title || getDefaultTitle(index + 1),
         cut: `Cut ${index + 1}`,
-        scene: sceneMatch?.[1]?.trim() || '',
-        plot: plotMatch?.[1]?.trim() || '',
-        desc: descMatch?.[1]?.trim() || '',
+        scene,
+        plot,
+        desc,
         raw: cleanedBlock,
       };
     });
@@ -576,15 +574,16 @@ export const Sidebar: React.FC = () => {
                   <Globe className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('outputLanguageLabel')}
                 </label>
-                <select
+                <Select
                   value={selectedOutputLanguage}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none"
-                >
-                  <option value="中文（简体）">{t('languages.zh')}</option>
-                  <option value="English">{t('languages.en')}</option>
-                  <option value="日本語">{t('languages.ja')}</option>
-                </select>
+                  onChange={setLanguage}
+                  ariaLabel={t('outputLanguageLabel')}
+                  options={[
+                    { value: '中文（简体）', label: t('languages.zh') },
+                    { value: 'English', label: t('languages.en') },
+                    { value: '日本語', label: t('languages.ja') },
+                  ]}
+                />
               </div>
 
               <div className="space-y-1">
@@ -592,19 +591,20 @@ export const Sidebar: React.FC = () => {
                   <Rows3 className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('paragraphCountLabel')}
                 </label>
-                <select
+                <Select
                   value={paragraphCountValue}
-                  onChange={(e) => setParagraphCount(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none"
-                >
-                  <option value="auto">{t('paragraphOptions.auto')}</option>
-                  <option value="5">{t('paragraphOptions.five')}</option>
-                  <option value="8">{t('paragraphOptions.eight')}</option>
-                  <option value="10">{t('paragraphOptions.ten')}</option>
-                  <option value="12">{t('paragraphOptions.twelve')}</option>
-                  <option value="15">{t('paragraphOptions.fifteen')}</option>
-                  <option value="custom">{t('paragraphOptions.custom')}</option>
-                </select>
+                  onChange={setParagraphCount}
+                  ariaLabel={t('paragraphCountLabel')}
+                  options={[
+                    { value: 'auto', label: t('paragraphOptions.auto') },
+                    { value: '5', label: t('paragraphOptions.five') },
+                    { value: '8', label: t('paragraphOptions.eight') },
+                    { value: '10', label: t('paragraphOptions.ten') },
+                    { value: '12', label: t('paragraphOptions.twelve') },
+                    { value: '15', label: t('paragraphOptions.fifteen') },
+                    { value: 'custom', label: t('paragraphOptions.custom') },
+                  ]}
+                />
                 {paragraphCountValue === 'custom' && (
                   <input
                     type="number"
@@ -687,17 +687,15 @@ export const Sidebar: React.FC = () => {
                   <Palette className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                   {t('animeStyleLabel')}
                 </label>
-                <select
+                <Select
                   value={animeStyle}
-                  onChange={(e) => setAnimeStyle(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none"
-                >
-                  {animeStyleOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {getAnimeStyleDisplayLabel(option)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setAnimeStyle}
+                  ariaLabel={t('animeStyleLabel')}
+                  options={animeStyleOptions.map((option) => ({
+                    value: option.value,
+                    label: getAnimeStyleDisplayLabel(option),
+                  }))}
+                />
                 {animeStyle === 'custom' && (
                   <input
                     type="text"

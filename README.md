@@ -1,73 +1,71 @@
 # Huiman Ark（绘漫方舟）
 
 <p align="center">
-  <img src="./public/favicon.svg" alt="Huiman Ark Logo" width="120" />
+  <img src="./public/favicon.svg" alt="Huiman Ark Logo" width="96" />
+</p>
+<p align="center">
+  <strong>把小说与故事灵感，变成角色不串脸的多格漫画与竖版长条漫</strong>
 </p>
 <p align="center">
   <a href="https://github.com/GL-Wen/huiman-ark"><img src="https://img.shields.io/github/stars/GL-Wen/huiman-ark?style=social" alt="GitHub Repo stars" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js" alt="Next.js" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.8-blue?style=flat&logo=typescript" alt="TypeScript" /></a>
-  <a href="https://huiman.antmoo.com"><img src="https://img.shields.io/badge/Live_Demo-huiman.antmoo.com-brightgreen" alt="Live Demo" /></a>
-  <a href="https://x.com/antmoch"><img src="https://img.shields.io/badge/X-@antmoch-000000?style=flat&logo=x" alt="Twitter/X" /></a>
+  <a href="https://huiman.antmoo.com"><img src="https://img.shields.io/badge/Live_Workspace-huiman.antmoo.com-brightgreen" alt="Live Workspace" /></a>
+  <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FGL-Wen%2Fhuiman-ark"><img src="https://vercel.com/button" alt="Deploy with Vercel" /></a>
 </p>
 
-中文 | [English](./README.en.md)
+<p align="center">
+  中文 | <a href="./README.en.md">English</a> · <a href="https://huiman.antmoo.com">在线工作台（支持免 Key 预览成品示例）</a> · <a href="./docs/deployment.md">部署指南</a>
+</p>
 
-> ⭐️ **如果这个项目对你的 AI 漫画创作、分镜生成或 Next.js 全栈开发有所启发，欢迎右上角点个 Star ⭐️ 支持一下！**
+---
 
-将故事变成分镜脚本、角色设定、独立立绘与多格漫画画面的 AI 创作工具。使用 Next.js、React、TypeScript 和 Tailwind CSS 构建，支持中文、英文和日文界面。
+## 成片效果展示（角色设定 → 多页连续分镜）
 
-项目采用 [MIT 许可证](./LICENSE)，可免费使用、修改、分发和商业使用。无需注册、登录或充值；支持使用部署者的默认 API 配置，也可在界面填写自己的配置。接口费用由所使用 Key 对应的服务商账户承担。
+无需训练 LoRA：先从故事大纲提取结构化角色档案、生成角色设定总图与单人立绘，再按每页登场角色**动态注入专属立绘参考**，在多页多格分镜中保持五官、发型与服饰高度一致。
 
-## 在线使用与支持
+<p align="center">
+  <img src="./public/showcase/sheet.png" alt="角色设定总图示例" width="100%" />
+</p>
+<p align="center">
+  <sub>▲ 自动提取故事角色档案并生成统一画风的角色设定参考图</sub>
+</p>
 
-不会部署可以直接访问 [在线体验站](https://huiman.antmoo.com)，已同步为本仓库的免费版，无需注册、登录或充值。需要使用帮助或部署协助，请联系作者。
+<p align="center">
+  <img src="./public/showcase/preview-grid.png" alt="多页多格漫画成片示例" width="100%" />
+</p>
+<p align="center">
+  <sub>▲ 按分镜登场人物自动挂载立绘参考，连续输出多格漫画页（支持一键拼接为竖版 Webtoon 长条漫或打包 ZIP）</sub>
+</p>
 
-公开支持联系方式：微信 **13623839679** · 邮箱 [toowell2015@126.com](mailto:toowell2015@126.com) · QQ **3575554244** · X (Twitter) [@antmoch](https://x.com/antmoch)。这些是作者授权公开的使用支持信息。
+> 💡 **零成本先看效果**：打开 [在线工作台](https://huiman.antmoo.com) 或本地启动后，无需配置任何 API Key，直接点击首页 **「免 Key 浏览成品示例」** 即可交互体验全套分镜编辑、角色立绘预览、条漫长图拼接与 ZIP 打包下载。
 
-**合作与定制**：如果你有重复、繁琐的创作或业务流程想做成工具，欢迎联系作者，可以先免费做一个可用的 demo。
+---
 
-在体验站或任意已部署的页面中，无需自行部署或注册绘漫方舟账号：
+## 为什么选择绘漫方舟？
 
-1. 点击绘漫方舟右上角“API 设置”。请求地址、文本模型、图像模型和 API Key 均可留空，继承部署者提供的默认配置。
-2. 如需自备 Key，填写对应接口的 Key。使用默认 AntMoo 接口时，可在 [AntMoo API 注册账号](https://api.antmoo.cc/register)，登录后前往 [API 令牌页](https://api.antmoo.cc/console/token) 创建 Key。
-3. 输入故事，生成大纲、角色和漫画。使用步骤和联系方式也可从“使用帮助”打开。
+- **纯本地、无账号、自备 Key（BYOK）**：无需数据库、注册登录或充值体系。创作会话保存在浏览器 IndexedDB 中，API Key 可选保存在本机 `localStorage`（刷新不丢失）或仅留驻页面内存。
+- **动态角色立绘注入（防串脸 / 防换装）**：将用户画风参考图与角色设定解耦；生成每一页分镜时自动识别当前段出镜角色，仅注入对应角色的单人立绘作为硬约束参考（自动适配不同模型的参考图数量上限）。
+- **四步可控工作流**：`1. 灵感模板与画风设定 → 2. 分镜脚本与行内微调 → 3. 角色设定图与单人立绘 → 4. 批量出图、断点续跑与多元导出`，每一步均可随时回改重跑。
+- **主流国内外模型开箱即用**：
+  - **文本平台预设**：火山方舟（豆包普通 API / Agent Plan / Coding Plan）、阿里百炼（通义千问普通 API / Coding Plan）、Claude 官方 API 及任意 OpenAI 兼容接口。
+  - **图像平台预设**：原生适配 **火山方舟 Seedream 5.0 Flash / Pro**（2K PNG 直出）、**阿里百炼千问图像 2.1 / 3.0** 及 OpenAI 兼容 `images/generations` & `images/edits` 接口；同厂商文本与图像可自动复用同一把普通 API Key。
+- **零依赖多元导出**：内置纯 TypeScript PKZip 打包器（一键导出故事大纲 Markdown、分镜 JSON、角色总图、单人立绘与全部漫画切页）及 Canvas **Webtoon 竖版长条漫无缝拼图**。
+- **服务端转发安全防护**：内置私网/保留 IP 拦截、DNS 解析绑定（防 DNS Rebinding）、重定向拦截、流式体积硬限与上游报错 Key 自动脱敏。
+- **多语言界面与创作**：支持简体中文、English、日本語界面及对应漫画对白语言输出。
 
-软件免费；API 服务商可能收取模型调用费用，具体以服务商说明为准。
+---
 
-## 功能
+## 快速开始
 
-创作支持向导式四步指引：**1. 灵感与风格设定 → 2. 故事大纲与分镜大纲 → 3. 角色设定与独立立绘 → 4. 漫画生成与多元导出**，亦可跳过角色设定直接按脚本生成漫画。
+### 方式一：一键部署到 Vercel
 
-- **可视化步骤导航**：顶部清晰的阶段进度条与状态指引，支持随时跨阶段点击跳转与完成度检查，创作链路清晰透明。
-- **故事灵感模板**：内置赛博暗黑、国风仙侠、青春治愈、奇幻热血等精选题材模板，双列自适应网格设计，一键填入故事背景设定、预设风格偏好与分镜参数，降低创作门槛。
-- **故事大纲与行内分镜微调**：输入故事描述，自动拆解为多段分镜脚本（支持自动 8–15 段、固定 5/8/10/12/15 段或自定义 1–100 段；每段格子数 3~6 格）。每张分镜卡片支持**行内直接编辑**场景与描述并即时生效；左侧面板支持**一键折叠/展开**，提供更宽敞的工作空间。
-- **角色档案与独立立绘生成**：自动从大纲中提取结构化角色档案（姓名、外貌、服装、性格、角色定位、镜头站位），不仅支持全家福角色设定图，更支持**单人立绘一键生成与全员批量生成**，并在角色卡片上即时展示缩略图与大图预览。
-- **画风解耦与分镜专属立绘精准参考**：彻底解耦用户参考图（作为画风与镜头参考）与角色设定图。分镜生成时自动解析当前页登场角色，**动态注入出镜角色的专属单人立绘**进行面部与服饰硬约束参考，并在卡片顶部显示“专属立绘参考 / 全家福参考 / 画风参考图”标识，最大化保障角色前后一致性。
-- **批量生成控制与智能重试**：逐段生成或一键批量生成全部漫画页，画幅支持横屏 16:9 和竖屏 9:16。批量生成过程中支持随时暂停/取消；生成失败卡片自动汇总，提供“重试失败项”与“继续生成未完成项”，避免无效消耗与重复等待。
-- **画风多样性**：内置 17 种主流动漫风格（日系萌系、少年漫画、赛博朋克、黑白漫画、韩漫条漫、国风古韵等），亦可自由输入自定义风格和风格偏好。
-- **参考图**：最多上传 3 张参考图片（PNG、JPG/JPEG、WEBP、HEIC、HEIF），专注于吸收画风笔触、色彩基调、场景材质与镜头氛围。
-- **多元化导出与拼图**：
-  - **零依赖 ZIP 打包**：前端内置轻量纯 TypeScript PKZip 打包器（无需额外外部三方依赖），一键将故事大纲文本、角色设定总图、各角色独立立绘、全部高清漫画切页及分镜数据打包为 ZIP 下载；
-  - **Webtoon 长条漫拼图导出**：一键将所有多格漫画切页顺畅拼接为一张适合移动端垂直滚动的长条漫图片；
-  - **大图灯箱预览**：支持方向键快速切换、缩放与单张无损下载。
-- **多平台文本模型**：除默认 / 自定义的 OpenAI 兼容接口外，内置火山方舟（普通 API、Agent Plan、Coding Plan）、阿里百炼（普通 API、Coding Plan）和 Claude 官方 API，各平台独立保存地址、模型和 Key。
-- **图像模型**：支持 OpenAI 兼容图像接口，并原生适配火山 Seedream 5.0 Pro / Flash 和百炼千问图像 2.1 / 3.0。
-- **接口配置**：请求地址、文本模型、图像模型和 API Key 均可在界面单独覆盖，留空则继承部署默认值。
-- **本地保存**：创作会话保存在当前浏览器的 IndexedDB 中，刷新后自动恢复，无需数据库或云账户；界面填写的 API Key 只保存在页面内存中，刷新后需重新填写。
-- **多语言界面**：中文、English、日本語。
+点击上方 **Deploy with Vercel** 按钮即可零配置部署个人工作台，部署完成后打开页面右上角 **「API 设置」** 填入你自己的模型 Key 即可使用。
 
-## 界面预览
+### 方式二：本地运行
 
-![Huiman Ark Screenshot 1](./public/1.png)
-![Huiman Ark Screenshot 2](./public/2.png)
-
-截图用于展示创作界面，具体控件以当前版本为准。
-
-## 本地运行
-
-需要 Node.js **22.18 或以上**、**pnpm 10.34.5**。API Key 可由部署环境提供，也可在界面填写。
+环境要求：**Node.js >= 22.18.0**、**pnpm 10.34.5**。
 
 ```bash
 git clone https://github.com/GL-Wen/huiman-ark.git
@@ -77,34 +75,38 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-打开 [http://localhost:3000](http://localhost:3000)，按需填写 API 设置，然后输入故事开始创作。
+打开 [http://localhost:3000](http://localhost:3000)：
 
-内置默认接口为 `https://api.antmoo.cc`，文本模型为 `claude-opus-5-5`，图像模型为 `gpt-image-2`。部署者可在 `.env.local` 中修改默认值，并按需提供服务端默认 Key：
+1. 先点 **「免 Key 浏览成品示例」** 熟悉完整分镜、立绘与导出链路；
+2. 点击右上角 **「API 设置」**，在下拉框选择 **火山方舟** 或 **阿里百炼**（新开通用户可在 [火山方舟控制台](https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey) 或 [阿里百炼控制台](https://bailian.console.aliyun.com/?apiKey=1#/api-key) 获取 API Key 与官方新客体验额度）；
+3. 勾选「记住 API Key」，输入故事或点击左侧灵感模板即可开始生成。
+
+---
+
+## 环境变量（可选）
+
+自托管私有实例时，也可在 `.env.local` 配置服务端默认值（界面留空时继承；公网部署建议保持 `AI_API_KEY` 为空，采用纯 BYOK 模式）：
 
 ```dotenv
 AI_API_BASE_URL=https://api.antmoo.cc
 AI_TEXT_MODEL=claude-opus-5-5
 AI_IMAGE_MODEL=gpt-image-2
 AI_API_KEY=
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-每项按“用户填写的非空值 → 环境变量非空值 → 内置默认值”生效；Key 没有内置值。若部署者配置了默认 Key，访客留空即使用部署者的接口额度。更换为不同 origin 的接口时必须填写自己的 Key，服务器不会把默认 Key 转发到其他 origin。
+详细的多平台套餐入口说明、安全策略与反向代理超时配置请参阅 [部署指南](./docs/deployment.md)。
 
-API 设置中的“文本平台”提供火山方舟、阿里百炼和 Claude 官方接口，普通 API 与 Plan 分别配置；各平台独立保存地址、模型和当前页面的 Key。选择具体平台时必须填写该平台自己的 Key，不会继承部署 Key。刷新后所有填写的 Key 清空，地址和模型偏好保留。Claude 使用官方 OpenAI 兼容入口，可选填 Workspace ID。
+---
 
-图像生成继续使用“默认 / 自定义”中的地址、Key 和图像模型，切换文本平台不会覆盖图像接口配置。
+## 工作台界面一览
 
-地址可填写服务根地址，或以 `/v1`、`/v3` 等版本号结尾的 API 基础地址（例如火山方舟的 `/api/v3`），版本号不会重复添加；用户改用不同地址时仅支持公网 HTTPS。兼容服务需提供所配置模型，支持文本 `chat/completions`、图像 `images/generations` 和 `images/edits` 接口，并返回 Base64 图像（`b64_json`）。火山 Seedream 5.0 Pro / Flash 通过 JSON 统一生成和参考图编辑，返回 Base64 PNG。百炼千问图像 2.1 / 3.0 使用独立适配：参考图通过 JSON 发送，返回的官方 OSS 图片经校验后下载并转为 Base64；其他服务仅返回远程图片 URL 时仍不受支持。
+![角色设定与档案工作台](./public/1.png)
+![多格漫画分镜管理与微调](./public/2.png)
 
-生产运行与完整配置见 [部署指南](./docs/deployment.md)。
+---
 
-## 数据与 API Key
-
-创作会话、请求地址和模型偏好保存在当前浏览器，清除网站数据或更换浏览器后无法恢复，请及时下载需要保留的作品。界面填写的 API Key 不写入 IndexedDB 或 localStorage；环境变量中的默认 Key 仅留在服务端。公开配置接口 `/api/ai/config` 仅返回默认地址、模型和 `hasApiKey`，不返回真实 Key。生成请求经过本应用服务器转发给配置的 AI 服务。
-
-仅在自己部署或信任的 HTTPS 站点中输入 Key。部署者能够接触转发请求，应避免记录请求头、请求体及 Key。
-
-## 开发与贡献
+## 开发与校验
 
 ```bash
 pnpm lint
@@ -113,6 +115,13 @@ pnpm test
 pnpm build
 ```
 
-欢迎提交 Issue 和 Pull Request，步骤见 [贡献指南](./CONTRIBUTING.md)。安全问题请按 [安全报告说明](./SECURITY.md) 私下反馈。
+欢迎提交 Issue 与 Pull Request，流程见 [贡献指南](./CONTRIBUTING.md)；安全问题请按 [安全策略](./SECURITY.md) 私下反馈。
 
-第三方依赖遵循各自许可证。上传素材和生成内容的使用应尊重相关权利，并遵守所使用 API 服务商的条款。
+---
+
+## 支持与合作
+
+如果这个项目对你的 AI 漫画工作流或全栈开发有帮助，欢迎点亮右上角 **Star ⭐️** 支持！
+
+- **使用交流 / 部署答疑 / 定制工具合作**：微信 `13623839679` · QQ `3575554244` · 邮箱 [toowell2015@126.com](mailto:toowell2015@126.com) · X [@antmoch](https://x.com/antmoch)
+- **开源协议**：[MIT License](./LICENSE)

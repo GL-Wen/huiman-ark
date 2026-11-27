@@ -128,3 +128,28 @@ test('generateCharacterPortraits produces portraits keyed by character name and 
     Reflect.deleteProperty(globalThis, 'window');
   }
 });
+
+test('getMaxReferenceImages caps Qwen 3.0 at 3 and parseSegmentFields extracts updated fields', async () => {
+  const { getMaxReferenceImages, parseSegmentFields, buildComicPagePrompt } = await import('./llm.ts');
+  assert.equal(getMaxReferenceImages('qwen-image-3.0-pro'), 3);
+  assert.equal(getMaxReferenceImages('qwen-image-2.1-pro'), 6);
+  assert.equal(getMaxReferenceImages('doubao-seedream-5-0-flash-260915'), 6);
+
+  const parsed = parseSegmentFields('场景：荒野客栈\n情节概述：雪夜偶遇\n画面描述：灯火摇曳\n本段落漫画分格建议：\n- 第1格：推门');
+  assert.deepEqual(parsed, { scene: '荒野客栈', plot: '雪夜偶遇', desc: '灯火摇曳' });
+
+  const prompt = buildComicPagePrompt({
+    segment: { id: 'cut-1', title: '开场', cut: 'Cut 1', ...parsed, raw: '场景：荒野客栈' },
+    storyInput: '故事',
+    characterDesign: null,
+    characterNames: [],
+    language: '中文（简体）',
+    aspectRatio: '16:9',
+    animeStyle: '国风',
+    style: '',
+    characterReferenceMode: 'none',
+    portraitNames: [],
+    panelsPerParagraph: '4~5',
+  });
+  assert.match(prompt, /4~5 个分格/);
+});

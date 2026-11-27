@@ -5,7 +5,19 @@ import { APP_LINKS, AUTHOR_CONTACT } from '@/config/app';
 import { useAppStore } from '../../store';
 import { Logo } from '../common/Logo';
 import { LanguageSwitcher } from '../common/LanguageSwitcher';
-import { createTextProviderConfigs, getTextApiConfig, TEXT_PROVIDER_PRESETS, type TextProvider, type TextProviderConfig } from '../../lib/textProviders.ts';
+import { Select } from '../common/Select';
+import {
+  createImageProviderConfigs,
+  createTextProviderConfigs,
+  getImageApiConfig,
+  getTextApiConfig,
+  IMAGE_PROVIDER_PRESETS,
+  TEXT_PROVIDER_PRESETS,
+  type ImageProvider,
+  type ImageProviderConfig,
+  type TextProvider,
+  type TextProviderConfig,
+} from '../../lib/textProviders.ts';
 
 export const Header: React.FC = () => {
   const {
@@ -13,6 +25,8 @@ export const Header: React.FC = () => {
     defaultApiBaseUrl, defaultTextModel, defaultImageModel, hasDefaultApiKey, setAiDefaults,
     resetApiOverrides, isApiSettingsOpen, openApiSettings, closeApiSettings,
     textProvider, textProviderConfigs, setTextApiSettings,
+    imageProvider, imageProviderConfigs, setImageApiSettings,
+    rememberApiKey, setRememberApiKey,
   } = useAppStore();
   const t = useTranslations('Header');
   const [draftKey, setDraftKey] = useState('');
@@ -21,19 +35,29 @@ export const Header: React.FC = () => {
   const [draftImageModel, setDraftImageModel] = useState('');
   const [draftTextProvider, setDraftTextProvider] = useState<TextProvider>('default');
   const [draftProviderConfigs, setDraftProviderConfigs] = useState(createTextProviderConfigs);
+  const [draftImageProvider, setDraftImageProvider] = useState<ImageProvider>('default');
+  const [draftImageProviderConfigs, setDraftImageProviderConfigs] = useState(createImageProviderConfigs);
+  const [draftRememberKey, setDraftRememberKey] = useState(false);
   const [isLoadingDefaults, setIsLoadingDefaults] = useState(true);
   const [defaultsFailed, setDefaultsFailed] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const helpButtonRef = useRef<HTMLButtonElement>(null);
   const activeDialog = isApiSettingsOpen ? 'api' : isHelpOpen ? 'help' : null;
-  const textApiReady = getTextApiConfig(useAppStore.getState()).hasApiKey;
+  const storeState = useAppStore.getState();
+  const textApiReady = getTextApiConfig(storeState).hasApiKey && getImageApiConfig(storeState).hasApiKey;
   const draftConfig: TextProviderConfig = draftTextProvider === 'default'
     ? { baseUrl: draftBaseUrl, model: draftTextModel, apiKey: draftKey, workspaceId: '' }
     : draftProviderConfigs[draftTextProvider];
   const draftDefaults = draftTextProvider === 'default'
     ? { baseUrl: defaultApiBaseUrl, model: defaultTextModel }
     : TEXT_PROVIDER_PRESETS[draftTextProvider];
+  const draftImgConfig: ImageProviderConfig = draftImageProvider === 'default'
+    ? { baseUrl: draftBaseUrl, model: draftImageModel, apiKey: draftKey }
+    : draftImageProviderConfigs[draftImageProvider];
+  const draftImgDefaults = draftImageProvider === 'default'
+    ? { baseUrl: defaultApiBaseUrl, model: defaultImageModel }
+    : IMAGE_PROVIDER_PRESETS[draftImageProvider];
 
   React.useEffect(() => {
     let disposed = false;
@@ -67,8 +91,11 @@ export const Header: React.FC = () => {
     setDraftImageModel(imageModel);
     setDraftTextProvider(textProvider);
     setDraftProviderConfigs(textProviderConfigs);
+    setDraftImageProvider(imageProvider);
+    setDraftImageProviderConfigs(imageProviderConfigs);
+    setDraftRememberKey(rememberApiKey || (!hasDefaultApiKey && !apiKey && Object.values(textProviderConfigs).every((c) => !c.apiKey) && Object.values(imageProviderConfigs).every((c) => !c.apiKey)));
     setIsHelpOpen(false);
-  }, [apiKey, apiBaseUrl, textModel, imageModel, textProvider, textProviderConfigs, isApiSettingsOpen]);
+  }, [apiKey, apiBaseUrl, textModel, imageModel, textProvider, textProviderConfigs, imageProvider, imageProviderConfigs, rememberApiKey, hasDefaultApiKey, isApiSettingsOpen]);
 
   React.useEffect(() => {
     const dialog = dialogRef.current;
@@ -122,11 +149,13 @@ export const Header: React.FC = () => {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    setRememberApiKey(draftRememberKey);
     setApiKey(draftKey.trim());
     setApiBaseUrl(draftBaseUrl.trim());
     setTextModel(draftTextModel.trim());
     setImageModel(draftImageModel.trim());
     setTextApiSettings(draftTextProvider, draftProviderConfigs);
+    setImageApiSettings(draftImageProvider, draftImageProviderConfigs);
     setDraftKey('');
     closeApiSettings();
   };
@@ -138,6 +167,16 @@ export const Header: React.FC = () => {
       if (field === 'apiKey') setDraftKey(value);
     } else {
       setDraftProviderConfigs((configs) => ({ ...configs, [draftTextProvider]: { ...configs[draftTextProvider], [field]: value } }));
+    }
+  };
+
+  const updateDraftImgConfig = (field: keyof ImageProviderConfig, value: string) => {
+    if (draftImageProvider === 'default') {
+      if (field === 'baseUrl') setDraftBaseUrl(value);
+      if (field === 'model') setDraftImageModel(value);
+      if (field === 'apiKey') setDraftKey(value);
+    } else {
+      setDraftImageProviderConfigs((configs) => ({ ...configs, [draftImageProvider]: { ...configs[draftImageProvider], [field]: value } }));
     }
   };
 
@@ -211,97 +250,162 @@ export const Header: React.FC = () => {
               <>
                 <p id="header-dialog-description" className="mb-4 text-sm leading-6 text-gray-600">{t('apiDescription')}</p>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="text-provider" className="mb-2 block text-sm font-medium text-gray-700">{t('textProvider')}</label>
-                    <select
-                      id="text-provider"
-                      value={draftTextProvider}
-                      onChange={(event) => setDraftTextProvider(event.target.value as TextProvider)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                    >
-                      <option value="default">{t('providers.default')}</option>
-                      {(Object.keys(TEXT_PROVIDER_PRESETS) as Array<Exclude<TextProvider, 'default'>>).map((provider) => (
-                        <option key={provider} value={provider}>{t(`providers.${provider}`)}</option>
-                      ))}
-                    </select>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">{t('textProviderHint')}</p>
-                  </div>
-                  <div>
-                    <label htmlFor="api-base-url" className="mb-2 block text-sm font-medium text-gray-700">{t('apiBaseUrl')}</label>
-                    <input
-                      id="api-base-url"
-                      type="url"
-                      value={draftConfig.baseUrl}
-                      onChange={(event) => updateDraftConfig('baseUrl', event.target.value)}
-                      placeholder={draftDefaults.baseUrl}
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                    />
-                    <p className="mt-1 break-all text-xs text-gray-400">{t('defaultValue', { value: draftDefaults.baseUrl })}</p>
-                  </div>
-                  <div>
-                    <label htmlFor="text-model" className="mb-2 block text-sm font-medium text-gray-700">{t('textModel')}</label>
-                    <input
-                      id="text-model"
-                      value={draftConfig.model}
-                      onChange={(event) => updateDraftConfig('model', event.target.value)}
-                      placeholder={draftDefaults.model}
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                    />
-                    <p className="mt-1 text-xs text-gray-400">{t('defaultValue', { value: draftDefaults.model })}</p>
-                  </div>
-                  <div>
-                    <label htmlFor="image-model" className="mb-2 block text-sm font-medium text-gray-700">{t('imageModel')}</label>
-                    <input
-                      id="image-model"
-                      value={draftImageModel}
-                      onChange={(event) => setDraftImageModel(event.target.value)}
-                      placeholder={defaultImageModel}
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                    />
-                    <p className="mt-1 text-xs text-gray-400">{t('defaultValue', { value: defaultImageModel })}</p>
-                  </div>
-                  <div>
-                    <label htmlFor="api-key" className="mb-2 block text-sm font-medium text-gray-700">API Key</label>
-                    <input
-                      id="api-key"
-                      type="password"
-                      value={draftConfig.apiKey}
-                      onChange={(event) => updateDraftConfig('apiKey', event.target.value)}
-                      placeholder={t(draftTextProvider === 'default' ? 'apiKeyPlaceholder' : 'textProviderKeyPlaceholder')}
-                      autoComplete="off"
-                      data-dialog-autofocus
-                      spellCheck={false}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                    />
-                  </div>
-                  {draftTextProvider === 'claude' && (
+                  <div className="rounded-lg border border-gray-200 p-3.5 space-y-3 bg-gray-50/50">
                     <div>
-                      <label htmlFor="claude-workspace" className="mb-2 block text-sm font-medium text-gray-700">{t('workspaceId')}</label>
+                      <label htmlFor="text-provider" className="mb-1.5 block text-sm font-semibold text-gray-800">{t('textProvider')}</label>
+                      <Select
+                        id="text-provider"
+                        value={draftTextProvider}
+                        onChange={(value) => setDraftTextProvider(value as TextProvider)}
+                        options={[
+                          { value: 'default', label: t('providers.default') },
+                          ...(Object.keys(TEXT_PROVIDER_PRESETS) as Array<Exclude<TextProvider, 'default'>>).map((provider) => ({
+                            value: provider,
+                            label: t(`providers.${provider}`),
+                          })),
+                        ]}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="api-base-url" className="mb-1 block text-xs font-medium text-gray-600">{t('apiBaseUrl')}</label>
                       <input
-                        id="claude-workspace"
-                        value={draftConfig.workspaceId}
-                        onChange={(event) => updateDraftConfig('workspaceId', event.target.value)}
-                        placeholder="wrkspc_..."
+                        id="api-base-url"
+                        type="url"
+                        value={draftConfig.baseUrl}
+                        onChange={(event) => updateDraftConfig('baseUrl', event.target.value)}
+                        placeholder={draftDefaults.baseUrl}
                         autoComplete="off"
                         spellCheck={false}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
                       />
-                      <p className="mt-1 text-xs leading-5 text-gray-500">{t('workspaceIdHint')}</p>
                     </div>
-                  )}
+                    <div>
+                      <label htmlFor="text-model" className="mb-1 block text-xs font-medium text-gray-600">{t('textModel')}</label>
+                      <input
+                        id="text-model"
+                        value={draftConfig.model}
+                        onChange={(event) => updateDraftConfig('model', event.target.value)}
+                        placeholder={draftDefaults.model}
+                        autoComplete="off"
+                        spellCheck={false}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="api-key" className="mb-1 block text-xs font-medium text-gray-600">API Key</label>
+                      <input
+                        id="api-key"
+                        type="password"
+                        value={draftConfig.apiKey}
+                        onChange={(event) => updateDraftConfig('apiKey', event.target.value)}
+                        placeholder={t(draftTextProvider === 'default' ? 'apiKeyPlaceholder' : 'textProviderKeyPlaceholder')}
+                        autoComplete="off"
+                        data-dialog-autofocus
+                        spellCheck={false}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      />
+                    </div>
+                    {draftTextProvider === 'claude' && (
+                      <div>
+                        <label htmlFor="claude-workspace" className="mb-1 block text-xs font-medium text-gray-600">{t('workspaceId')}</label>
+                        <input
+                          id="claude-workspace"
+                          value={draftConfig.workspaceId}
+                          onChange={(event) => updateDraftConfig('workspaceId', event.target.value)}
+                          placeholder="wrkspc_..."
+                          autoComplete="off"
+                          spellCheck={false}
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                        />
+                        <p className="mt-1 text-xs leading-5 text-gray-500">{t('workspaceIdHint')}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-lg border border-gray-200 p-3.5 space-y-3 bg-gray-50/50">
+                    <div>
+                      <label htmlFor="image-provider" className="mb-1.5 block text-sm font-semibold text-gray-800">{t('imageProvider')}</label>
+                      <Select
+                        id="image-provider"
+                        value={draftImageProvider}
+                        onChange={(value) => setDraftImageProvider(value as ImageProvider)}
+                        options={[
+                          { value: 'default', label: t('imageProviders.default') },
+                          ...(Object.keys(IMAGE_PROVIDER_PRESETS) as Array<Exclude<ImageProvider, 'default'>>).map((provider) => ({
+                            value: provider,
+                            label: t(`imageProviders.${provider}`),
+                          })),
+                        ]}
+                      />
+                    </div>
+                    {draftImageProvider !== 'default' && (
+                      <div>
+                        <label htmlFor="image-base-url" className="mb-1 block text-xs font-medium text-gray-600">{t('apiBaseUrl')}</label>
+                        <input
+                          id="image-base-url"
+                          type="url"
+                          value={draftImgConfig.baseUrl}
+                          onChange={(event) => updateDraftImgConfig('baseUrl', event.target.value)}
+                          placeholder={draftImgDefaults.baseUrl}
+                          autoComplete="off"
+                          spellCheck={false}
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label htmlFor="image-model" className="mb-1 block text-xs font-medium text-gray-600">{t('imageModel')}</label>
+                      <input
+                        id="image-model"
+                        value={draftImgConfig.model}
+                        onChange={(event) => updateDraftImgConfig('model', event.target.value)}
+                        placeholder={draftImgDefaults.model}
+                        autoComplete="off"
+                        spellCheck={false}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      />
+                    </div>
+                    {draftImageProvider !== 'default' && (
+                      <div>
+                        <label htmlFor="image-api-key" className="mb-1 block text-xs font-medium text-gray-600">{t('imageApiKey')}</label>
+                        <input
+                          id="image-api-key"
+                          type="password"
+                          value={draftImgConfig.apiKey}
+                          onChange={(event) => updateDraftImgConfig('apiKey', event.target.value)}
+                          placeholder={t('imageProviderKeyPlaceholder')}
+                          autoComplete="off"
+                          spellCheck={false}
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none rounded-lg border border-gray-200 px-3 py-2.5 hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={draftRememberKey}
+                      onChange={(event) => setDraftRememberKey(event.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-xs leading-5 text-gray-700">{t('rememberApiKey')}</span>
+                  </label>
+
                   <p className="text-xs leading-5 text-gray-500" role="status">
-                    {draftTextProvider !== 'default' ? t('textProviderKeyHint') : isLoadingDefaults ? t('loadingDefaults') : defaultsFailed ? t('defaultsFailed') : hasDefaultApiKey ? t('defaultKeyAvailable') : t('defaultKeyMissing')}
+                    {draftTextProvider !== 'default' || draftImageProvider !== 'default'
+                      ? t('textProviderKeyHint')
+                      : isLoadingDefaults
+                        ? t('loadingDefaults')
+                        : defaultsFailed
+                          ? t('defaultsFailed')
+                          : hasDefaultApiKey
+                            ? t('defaultKeyAvailable')
+                            : t('defaultKeyMissing')}
                   </p>
-                  <p className="text-xs leading-5 text-amber-700">{t('providerKeyHint')}</p>
                   <p className="rounded-lg bg-indigo-50 p-3 text-xs leading-5 text-indigo-800">{t('apiKeyPrivacy')}</p>
                   <div className="flex gap-3">
-                    {(textProvider !== 'default' || apiKey || apiBaseUrl || textModel || imageModel || Object.values(textProviderConfigs).some((config) => config.apiKey)) && (
+                    {(textProvider !== 'default' || imageProvider !== 'default' || rememberApiKey || apiKey || apiBaseUrl || textModel || imageModel || Object.values(textProviderConfigs).some((config) => config.apiKey) || Object.values(imageProviderConfigs).some((config) => config.apiKey)) && (
                       <button
                         type="button"
                         onClick={() => {
@@ -310,6 +414,7 @@ export const Header: React.FC = () => {
                           setDraftBaseUrl('');
                           setDraftTextModel('');
                           setDraftImageModel('');
+                          setDraftRememberKey(false);
                           closeApiSettings();
                         }}
                         className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
@@ -329,8 +434,8 @@ export const Header: React.FC = () => {
                 <p id="header-dialog-description">{t('helpIntro')}</p>
                 <ol className="list-decimal space-y-3 pl-5">
                   <li>{t.rich('helpGetKey', {
-                    register: (chunks) => <a href={APP_LINKS.apiRegistrationUrl} target="_blank" rel="noreferrer" className="font-medium text-indigo-600 hover:underline">{chunks}</a>,
-                    tokens: (chunks) => <a href={APP_LINKS.apiTokensUrl} target="_blank" rel="noreferrer" className="font-medium text-indigo-600 hover:underline">{chunks}</a>,
+                    volcengine: (chunks) => <a href={APP_LINKS.volcengineConsoleUrl} target="_blank" rel="noreferrer" className="font-medium text-indigo-600 hover:underline">{chunks}</a>,
+                    aliyun: (chunks) => <a href={APP_LINKS.aliyunConsoleUrl} target="_blank" rel="noreferrer" className="font-medium text-indigo-600 hover:underline">{chunks}</a>,
                   })}</li>
                   <li><button type="button" onClick={showApiSettings} className="font-medium text-indigo-600 hover:underline">{t('helpConfigureKey')}</button></li>
                   <li>{t('helpCreate')}</li>

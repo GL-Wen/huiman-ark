@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createTextProviderConfigs, TEXT_PROVIDER_PRESETS, type TextProvider, type TextProviderConfigs } from '../lib/textProviders.ts';
+import {
+  createImageProviderConfigs,
+  createTextProviderConfigs,
+  IMAGE_PROVIDER_PRESETS,
+  TEXT_PROVIDER_PRESETS,
+  type ImageProvider,
+  type ImageProviderConfigs,
+  type TextProvider,
+  type TextProviderConfigs,
+} from '../lib/textProviders.ts';
 
 export type Step =
   | 'initial'
@@ -36,6 +45,11 @@ interface AppState {
   textProvider: TextProvider;
   textProviderConfigs: TextProviderConfigs;
   setTextApiSettings: (provider: TextProvider, configs: TextProviderConfigs) => void;
+  imageProvider: ImageProvider;
+  imageProviderConfigs: ImageProviderConfigs;
+  setImageApiSettings: (provider: ImageProvider, configs: ImageProviderConfigs) => void;
+  rememberApiKey: boolean;
+  setRememberApiKey: (remember: boolean) => void;
   apiKey: string;
   setApiKey: (key: string) => void;
   apiBaseUrl: string;
@@ -115,6 +129,11 @@ export const useAppStore = create<AppState>()(
       textProvider: 'default',
       textProviderConfigs: createTextProviderConfigs(),
       setTextApiSettings: (textProvider, textProviderConfigs) => set({ textProvider, textProviderConfigs }),
+      imageProvider: 'default',
+      imageProviderConfigs: createImageProviderConfigs(),
+      setImageApiSettings: (imageProvider, imageProviderConfigs) => set({ imageProvider, imageProviderConfigs }),
+      rememberApiKey: false,
+      setRememberApiKey: (rememberApiKey) => set({ rememberApiKey }),
       apiKey: '',
       setApiKey: (key) => set({ apiKey: key }),
       apiBaseUrl: '',
@@ -134,8 +153,9 @@ export const useAppStore = create<AppState>()(
         hasDefaultApiKey: config.hasApiKey,
       }),
       resetApiOverrides: () => set({
-        apiBaseUrl: '', textModel: '', imageModel: '', apiKey: '',
+        apiBaseUrl: '', textModel: '', imageModel: '', apiKey: '', rememberApiKey: false,
         textProvider: 'default', textProviderConfigs: createTextProviderConfigs(),
+        imageProvider: 'default', imageProviderConfigs: createImageProviderConfigs(),
       }),
       isApiSettingsOpen: false,
       openApiSettings: () => set({ isApiSettingsOpen: true }),
@@ -236,34 +256,62 @@ export const useAppStore = create<AppState>()(
       // Restore only current preferences; ignore saved credentials and obsolete settings.
       merge: (persistedState, currentState) => {
         const saved = persistedState as Partial<AppState> | undefined;
+        const rememberApiKey = saved?.rememberApiKey === true;
         const textProviderConfigs = createTextProviderConfigs();
         for (const provider of Object.keys(TEXT_PROVIDER_PRESETS) as Array<keyof TextProviderConfigs>) {
           const config = saved?.textProviderConfigs?.[provider];
           for (const field of ['baseUrl', 'model', 'workspaceId'] as const) {
             if (typeof config?.[field] === 'string') textProviderConfigs[provider][field] = config[field];
           }
+          if (rememberApiKey && typeof config?.apiKey === 'string') {
+            textProviderConfigs[provider].apiKey = config.apiKey;
+          }
+        }
+        const imageProviderConfigs = createImageProviderConfigs();
+        for (const provider of Object.keys(IMAGE_PROVIDER_PRESETS) as Array<keyof ImageProviderConfigs>) {
+          const config = saved?.imageProviderConfigs?.[provider];
+          for (const field of ['baseUrl', 'model'] as const) {
+            if (typeof config?.[field] === 'string') imageProviderConfigs[provider][field] = config[field];
+          }
+          if (rememberApiKey && typeof config?.apiKey === 'string') {
+            imageProviderConfigs[provider].apiKey = config.apiKey;
+          }
         }
         return {
           ...currentState,
+          rememberApiKey,
           textProvider: saved?.textProvider && Object.keys(TEXT_PROVIDER_PRESETS).includes(saved.textProvider) ? saved.textProvider : 'default',
           textProviderConfigs,
+          imageProvider: saved?.imageProvider && Object.keys(IMAGE_PROVIDER_PRESETS).includes(saved.imageProvider) ? saved.imageProvider : 'default',
+          imageProviderConfigs,
           apiBaseUrl: typeof saved?.apiBaseUrl === 'string' ? saved.apiBaseUrl : '',
           textModel: typeof saved?.textModel === 'string' ? saved.textModel : '',
           imageModel: typeof saved?.imageModel === 'string' ? saved.imageModel : '',
           language: saved?.language ?? currentState.language,
           paragraphCount: saved?.paragraphCount ?? currentState.paragraphCount,
           customParagraphCount: saved?.customParagraphCount ?? currentState.customParagraphCount,
+          panelsPerParagraph: typeof saved?.panelsPerParagraph === 'string' ? saved.panelsPerParagraph : currentState.panelsPerParagraph,
           ratio: saved?.ratio ?? currentState.ratio,
           animeStyle: saved?.animeStyle ?? currentState.animeStyle,
           customAnimeStyle: saved?.customAnimeStyle ?? currentState.customAnimeStyle,
           style: saved?.style ?? currentState.style,
-          apiKey: '',
+          apiKey: rememberApiKey && typeof saved?.apiKey === 'string' ? saved.apiKey : '',
         };
       },
       partialize: (state) => ({
+        ...(state.rememberApiKey ? { rememberApiKey: true, apiKey: state.apiKey } : {}),
         textProvider: state.textProvider,
         textProviderConfigs: Object.fromEntries(Object.entries(state.textProviderConfigs).map(([provider, config]) => [provider, {
-          baseUrl: config.baseUrl, model: config.model, workspaceId: config.workspaceId,
+          baseUrl: config.baseUrl,
+          model: config.model,
+          workspaceId: config.workspaceId,
+          ...(state.rememberApiKey && config.apiKey ? { apiKey: config.apiKey } : {}),
+        }])),
+        imageProvider: state.imageProvider,
+        imageProviderConfigs: Object.fromEntries(Object.entries(state.imageProviderConfigs).map(([provider, config]) => [provider, {
+          baseUrl: config.baseUrl,
+          model: config.model,
+          ...(state.rememberApiKey && config.apiKey ? { apiKey: config.apiKey } : {}),
         }])),
         apiBaseUrl: state.apiBaseUrl,
         textModel: state.textModel,
@@ -271,6 +319,7 @@ export const useAppStore = create<AppState>()(
         language: state.language,
         paragraphCount: state.paragraphCount,
         customParagraphCount: state.customParagraphCount,
+        panelsPerParagraph: state.panelsPerParagraph,
         ratio: state.ratio,
         animeStyle: state.animeStyle,
         customAnimeStyle: state.customAnimeStyle,

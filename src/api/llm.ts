@@ -46,9 +46,12 @@ export const CHARACTER_DESIGNER_PROMPT = `你是一个专业的动漫角色设�
 - 直接输出角色设定，不要添加额外解释`;
 
 import { useAppStore, type ScriptSegment } from '../store/index.ts';
-import { getTextApiConfig } from '../lib/textProviders.ts';
+import { getImageApiConfig, getTextApiConfig } from '../lib/textProviders.ts';
 
 type AspectRatio = '16:9' | '9:16';
+
+export const getMaxReferenceImages = (imageModel: string) =>
+  /^qwen-image-3\.0/i.test(imageModel.trim()) ? 3 : 6;
 
 export const SUPPORTED_REFERENCE_IMAGE_MIME_TYPES = [
   'image/png',
@@ -237,6 +240,20 @@ export const sanitizeStorySegmentText = (raw: string) => {
   }
 
   return normalized.replace(STORY_SEGMENT_META_PREFIX_PATTERN, '').trim();
+};
+
+export const parseSegmentFields = (raw: string) => {
+  const cleaned = sanitizeStorySegmentText(raw);
+  const sceneMatch = cleaned.match(new RegExp(`${STORY_SCENE_LABEL_PATTERN}[:：](.*?)(?=\\n|$)`, 'i'));
+  const plotMatch = cleaned.match(new RegExp(`${STORY_PLOT_LABEL_PATTERN}[:：](.*?)(?=\\n|$)`, 'i'));
+  const descMatch = cleaned.match(
+    new RegExp(`${STORY_VISUAL_LABEL_PATTERN}[:：]([\\s\\S]*?)(?=\\n(?:本段落|分格建议|第\\d+格|Panel\\s*\\d+|コマ)|$)`, 'i'),
+  );
+  return {
+    scene: sceneMatch?.[1]?.trim() || '',
+    plot: plotMatch?.[1]?.trim() || '',
+    desc: descMatch?.[1]?.trim() || '',
+  };
 };
 
 const DIALOGUE_QUOTE_PATTERNS: RegExp[] = [
@@ -515,7 +532,10 @@ export const generateCharacterPortraits = async (
 
   const portraits: Record<string, string> = {};
   const failures: string[] = [];
-  const allRefImages = sheetImage ? [sheetImage, ...referenceImages] : referenceImages;
+  const state = useAppStore.getState();
+  const activeImageModel = getImageApiConfig(state, apiKey).model || state.defaultImageModel;
+  const maxRefs = getMaxReferenceImages(activeImageModel);
+  const allRefImages = (sheetImage ? [sheetImage, ...referenceImages] : referenceImages).slice(0, maxRefs);
 
   for (let i = 0; i < profilesToGenerate.length; i++) {
     const { profile, originalIndex } = profilesToGenerate[i];
@@ -728,6 +748,7 @@ export const buildComicPagePrompt = ({
   style,
   characterReferenceMode,
   portraitNames,
+  panelsPerParagraph = '3~6',
 }: {
   segment: ScriptSegment;
   storyInput: string;
@@ -739,6 +760,7 @@ export const buildComicPagePrompt = ({
   style: string;
   characterReferenceMode: CharacterReferenceMode;
   portraitNames: string[];
+  panelsPerParagraph?: string;
 }) => {
   const languageLabel = normalizeLanguageLabel(language);
   const styleText = buildStyleText(animeStyle, style, '严格贴合所选动漫风格，细腻动漫叙事');
@@ -800,7 +822,7 @@ ${cleanedSegmentRaw}
 
 创作要求：
 1. 只生成这一段的内容，不要混入其他段落
-2. 一页内拆分成 3-6 个分格，叙事清晰连贯
+2. 一页内拆分成 ${panelsPerParagraph.trim() || '3~6'} 个分格，叙事清晰连贯
 3. 每个分格聚焦关键动作、表情、镜头或场景变化
 4. 镜头语言有层次，包含远景、中景、特写等变化
 5. 对白和旁白尽量精炼，适合直接放入漫画气泡；每条台词只在唯一一个气泡中出现一次
@@ -816,7 +838,11 @@ export const generateImage = async (
   prompt: string,
   options: GenerateImageOptions = {},
 ): Promise<string> => {
-  const { apiBaseUrl, imageModel } = useAppStore.getState();
+  const state = useAppStore.getState();
+  const imgConfig = getImageApiConfig(state, apiKey);
+  if (state.imageProvider !== 'default' && !imgConfig.hasApiKey) {
+    throw new Error('请为所选图像平台填写自己的 API Key');
+  }
   const controller = new AbortController();
   const timeoutMs = options.timeoutMs ?? 10 * 60 * 1000;
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -826,12 +852,12 @@ export const generateImage = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(apiKey.trim() ? { Authorization: `Bearer ${apiKey.trim()}` } : {}),
+        ...(imgConfig.apiKey ? { Authorization: `Bearer ${imgConfig.apiKey}` } : {}),
       },
       body: JSON.stringify({
         prompt,
-        baseUrl: apiBaseUrl.trim() || undefined,
-        model: imageModel.trim() || undefined,
+        baseUrl: imgConfig.baseUrl || undefined,
+        model: imgConfig.model || undefined,
         referenceImages: options.referenceImages ?? [],
         aspectRatio: options.aspectRatio ?? '16:9',
         referenceInstruction: options.referenceInstruction,

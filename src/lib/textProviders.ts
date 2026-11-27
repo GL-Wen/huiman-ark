@@ -8,7 +8,16 @@ export const TEXT_PROVIDER_PRESETS = {
   claude: { baseUrl: 'https://api.anthropic.com/v1', model: 'claude-opus-5-5' },
 } as const;
 
+export const IMAGE_PROVIDER_PRESETS = {
+  volcengine: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-flash-260915' },
+  'volcengine-pro': { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-pro-260628' },
+  aliyun: { baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-image-2.1-pro' },
+  'aliyun-3': { baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-image-3.0-pro' },
+} as const;
+
 export type TextProvider = 'default' | keyof typeof TEXT_PROVIDER_PRESETS;
+export type ImageProvider = 'default' | keyof typeof IMAGE_PROVIDER_PRESETS;
+
 export interface TextProviderConfig {
   baseUrl: string;
   model: string;
@@ -17,9 +26,20 @@ export interface TextProviderConfig {
 }
 export type TextProviderConfigs = Record<Exclude<TextProvider, 'default'>, TextProviderConfig>;
 
+export interface ImageProviderConfig {
+  baseUrl: string;
+  model: string;
+  apiKey: string;
+}
+export type ImageProviderConfigs = Record<Exclude<ImageProvider, 'default'>, ImageProviderConfig>;
+
 export const createTextProviderConfigs = (): TextProviderConfigs => Object.fromEntries(
   Object.entries(TEXT_PROVIDER_PRESETS).map(([provider, config]) => [provider, { ...config, apiKey: '', workspaceId: '' }]),
 ) as TextProviderConfigs;
+
+export const createImageProviderConfigs = (): ImageProviderConfigs => Object.fromEntries(
+  Object.entries(IMAGE_PROVIDER_PRESETS).map(([provider, config]) => [provider, { ...config, apiKey: '' }]),
+) as ImageProviderConfigs;
 
 export const getTextApiConfig = (state: {
   textProvider: TextProvider;
@@ -43,5 +63,38 @@ export const getTextApiConfig = (state: {
     apiKey: config.apiKey.trim(),
     workspaceId: config.workspaceId.trim(),
     hasApiKey: Boolean(config.apiKey.trim()),
+  };
+};
+
+export const getImageApiConfig = (state: {
+  imageProvider: ImageProvider;
+  imageProviderConfigs: ImageProviderConfigs;
+  textProviderConfigs: TextProviderConfigs;
+  apiBaseUrl: string;
+  imageModel: string;
+  apiKey: string;
+  hasDefaultApiKey: boolean;
+}, apiKey = state.apiKey) => {
+  if (state.imageProvider === 'default') {
+    return {
+      baseUrl: state.apiBaseUrl.trim(),
+      model: state.imageModel.trim(),
+      apiKey: apiKey.trim(),
+      hasApiKey: Boolean(apiKey.trim() || state.hasDefaultApiKey),
+    };
+  }
+  const config = state.imageProviderConfigs[state.imageProvider];
+  const preset = IMAGE_PROVIDER_PRESETS[state.imageProvider];
+  const sharedVendorKey = state.imageProvider.startsWith('volcengine')
+    ? state.textProviderConfigs.volcengine.apiKey.trim()
+    : state.imageProvider.startsWith('aliyun')
+      ? state.textProviderConfigs.aliyun.apiKey.trim()
+      : '';
+  const resolvedKey = config.apiKey.trim() || sharedVendorKey;
+  return {
+    baseUrl: config.baseUrl.trim() || preset.baseUrl,
+    model: config.model.trim() || preset.model,
+    apiKey: resolvedKey,
+    hasApiKey: Boolean(resolvedKey),
   };
 };

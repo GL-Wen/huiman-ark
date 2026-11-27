@@ -1,6 +1,8 @@
 export const APP_LINKS = {
   github: 'https://github.com/GL-Wen/huiman-ark',
   online: 'https://huiman.antmoo.com',
+  volcengineConsoleUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
+  aliyunConsoleUrl: 'https://bailian.console.aliyun.com/?apiKey=1#/api-key',
   apiPortal: 'https://api.antmoo.cc',
   apiRegistrationUrl: 'https://api.antmoo.cc/register',
   apiTokensUrl: 'https://api.antmoo.cc/console/token',

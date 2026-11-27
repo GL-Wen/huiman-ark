@@ -17,6 +17,7 @@ type SessionSnapshot = {
   characterDesign: string | null;
   characterDesignImage: string | null;
   characterNames: string[];
+  characterPortraits: Record<string, string>;
   generatedComics: GeneratedComicMap;
   currentStep: Step;
 };
@@ -33,7 +34,7 @@ const getRestoredStep = (snapshot: SessionSnapshot): Step => {
     return Object.keys(snapshot.generatedComics).length >= snapshot.generatedScript.length ? 'done' : 'characters_done';
   }
 
-  if (snapshot.characterDesign || snapshot.characterDesignImage) {
+  if (snapshot.characterDesign || snapshot.characterDesignImage || Object.keys(snapshot.characterPortraits).length > 0) {
     return 'characters_done';
   }
 
@@ -51,6 +52,7 @@ const isMeaningfulSnapshot = (snapshot: SessionSnapshot) =>
       snapshot.generatedScript.length ||
       snapshot.characterDesign ||
       snapshot.characterDesignImage ||
+      Object.keys(snapshot.characterPortraits).length ||
       Object.keys(snapshot.generatedComics).length,
   );
 
@@ -73,6 +75,7 @@ export const useSessionPersistence = () => {
       characterDesign: state.characterDesign,
       characterDesignImage: state.characterDesignImage,
       characterNames: state.characterNames,
+      characterPortraits: state.characterPortraits,
       generatedComics: state.generatedComics,
       currentStep: state.currentStep,
     }),
@@ -91,6 +94,7 @@ export const useSessionPersistence = () => {
       state.characterDesign,
       state.characterDesignImage,
       state.characterNames,
+      state.characterPortraits,
       state.generatedComics,
       state.currentStep,
     ],
@@ -121,6 +125,7 @@ export const useSessionPersistence = () => {
           characterDesign: saved.characterDesign ?? null,
           characterDesignImage: saved.characterDesignImage ?? null,
           characterNames: saved.characterNames ?? [],
+          characterPortraits: saved.characterPortraits ?? {},
           generatedComics: saved.generatedComics ?? {},
           pendingComicId: null,
           currentStep: getRestoredStep({
@@ -138,6 +143,7 @@ export const useSessionPersistence = () => {
             characterDesign: saved.characterDesign ?? null,
             characterDesignImage: saved.characterDesignImage ?? null,
             characterNames: saved.characterNames ?? [],
+            characterPortraits: saved.characterPortraits ?? {},
             generatedComics: saved.generatedComics ?? {},
             currentStep: saved.currentStep ?? 'initial',
           }),
