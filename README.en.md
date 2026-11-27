@@ -29,14 +29,14 @@ No LoRA training required: Huiman Ark extracts structured character profiles fro
   <img src="./public/showcase/sheet.png" alt="Character Design Sheet Example" width="100%" />
 </p>
 <p align="center">
-  <sub>▲ Structured character extraction & unified ensemble reference sheet</sub>
+  <sub>▲ Structured character extraction & unified ensemble reference sheet (Built-in original showcase: <em>The Rainy-Night Memory Pawnshop</em>)</sub>
 </p>
 
 <p align="center">
   <img src="./public/showcase/preview-grid.png" alt="Multi-Panel Comic Pages Example" width="100%" />
 </p>
 <p align="center">
-  <sub>▲ Dynamic per-cut character reference injection across sequential multi-panel comic pages</sub>
+  <sub>▲ Dynamic per-cut injection across 3 standalone character portraits to produce 4 consistent comic pages</sub>
 </p>
 
 > 💡 **Try with zero API setup**: Open the [Live Workspace](https://huiman.antmoo.com) or run locally and click **"View Built-in Example (No Key)"** on the home screen to inspect the full storyboard, standalone portraits, lightbox viewer, Webtoon long-strip stitcher, and ZIP exporter at zero cost.

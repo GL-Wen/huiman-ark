@@ -29,14 +29,14 @@
   <img src="./public/showcase/sheet.png" alt="角色设定总图示例" width="100%" />
 </p>
 <p align="center">
-  <sub>▲ 自动提取故事角色档案并生成统一画风的角色设定参考图</sub>
+  <sub>▲ 自动提取故事角色档案并生成统一画风的角色设定参考图（内置原创示例《雨夜记忆当铺》）</sub>
 </p>
 
 <p align="center">
   <img src="./public/showcase/preview-grid.png" alt="多页多格漫画成片示例" width="100%" />
 </p>
 <p align="center">
-  <sub>▲ 按分镜登场人物自动挂载立绘参考，连续输出多格漫画页（支持一键拼接为竖版 Webtoon 长条漫或打包 ZIP）</sub>
+  <sub>▲ 按分镜登场人物自动挂载 3 张独立立绘参考，连续输出 4 页赛博新国风多格漫画（支持一键拼接为竖版 Webtoon 长条漫或打包 ZIP）</sub>
 </p>
 
 > 💡 **零成本先看效果**：打开 [在线工作台](https://huiman.antmoo.com) 或本地启动后，无需配置任何 API Key，直接点击首页 **「免 Key 浏览成品示例」** 即可交互体验全套分镜编辑、角色立绘预览、条漫长图拼接与 ZIP 打包下载。
