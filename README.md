@@ -1,7 +1,7 @@
 # Huiman Ark（绘漫方舟）
 
 <p align="center">
-  <img src="./public/favicon.svg" alt="Huiman Ark Logo" width="96" />
+  <img src="./public/logo.png" alt="Huiman Ark Logo" width="96" />
 </p>
 <p align="center">
   <strong>把小说与故事灵感，变成角色不串脸的多格漫画与竖版长条漫</strong>

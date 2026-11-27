@@ -87,7 +87,8 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <head>
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
       </head>
       <body>
         <NextIntlClientProvider messages={messages}>

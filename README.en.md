@@ -1,7 +1,7 @@
 # Huiman Ark
 
 <p align="center">
-  <img src="./public/favicon.svg" alt="Huiman Ark Logo" width="96" />
+  <img src="./public/logo.png" alt="Huiman Ark Logo" width="96" />
 </p>
 <p align="center">
   <strong>Turn stories and novels into character-consistent multi-panel comics & vertical webtoon strips</strong>
